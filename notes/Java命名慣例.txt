@@ -1,0 +1,5 @@
+常見的 Java 命名慣例是：
+- 類別與檔案：大駝峰，例如 EventController.java，檔名與公開類別名稱一致。
+- 方法與變數：小駝峰，例如 createEvent()、eventId。
+- package：全小寫，例如 controller、service、repository。
+- 常數：全大寫加底線，例如 MAX_CAPACITY。

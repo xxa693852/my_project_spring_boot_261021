@@ -1,0 +1,42 @@
+一、DB 資料表與欄位
+核心先用三張表：
+資料表	用途
+members	儲存會員、管理員
+events	儲存活動場次
+registrations	記錄誰報名了哪一場活動
+
+
+1. 會員表 members
+欄位名稱	MySQL 型別	必填	說明
+id	BIGINT	是	主鍵，自動遞增
+account	VARCHAR(50)	是	登入帳號，不可重複
+password_hash	VARCHAR(255)	是	儲存密碼雜湊值
+name	VARCHAR(50)	是	會員顯示名稱
+email	VARCHAR(254)	是	電子信箱，第一版設定不可重複
+role	VARCHAR(20)	是	MEMBER 或 ADMIN
+status	VARCHAR(20)	是	ACTIVE 或 DISABLED
+created_at	DATETIME	是	建立時間
+updated_at	DATETIME	是	最後修改時間
+
+
+預設值：
+- role：MEMBER。
+- status：ACTIVE。
+註冊時由後端設定角色，不能讓使用者自己傳入 ADMIN。
+2. 活動表 events
+一筆資料代表一個實際場次，同一冒險不同日期開團，分別建立資料。
+欄位名稱	MySQL 型別	必填	說明
+id	BIGINT	是	主鍵，自動遞增
+title	VARCHAR(100)	是	活動名稱
+description	TEXT	是	活動內容、注意事項
+host_name	VARCHAR(50)	是	主持人名稱
+location	VARCHAR(255)	是	活動地點
+start_at	DATETIME	是	活動開始時間
+end_at	DATETIME	是	活動結束時間
+registration_deadline	DATETIME	是	報名及取消截止時間
+capacity	INT	是	玩家人數上限，不含主持人
+beginner_friendly	BOOLEAN	是	是否適合新手，預設 FALSE
+status	VARCHAR(20)	是	OPEN、CLOSED、CANCELLED
+created_by	BIGINT	是	建立活動的管理員，外鍵
+created_at	DATETIME	是	建立時間
+updated_at	DATETIME	是	最後修改時間
