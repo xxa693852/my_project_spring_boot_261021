@@ -1,0 +1,5 @@
+<!-- 密碼雜湊工具 -->
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-crypto</artifactId>
+</dependency>
