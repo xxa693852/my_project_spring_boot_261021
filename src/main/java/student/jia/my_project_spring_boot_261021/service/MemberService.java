@@ -3,12 +3,19 @@ package student.jia.my_project_spring_boot_261021.service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.Optional;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.exception.MemberAccountExcption;
+import student.jia.my_project_spring_boot_261021.exception.ResourceNotFoundException;
 import student.jia.my_project_spring_boot_261021.repository.MemberRepository;
 import student.jia.my_project_spring_boot_261021.request.MemberRegisterRequest;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import student.jia.my_project_spring_boot_261021.response.MemberResponse;
+
 @Service
 public class MemberService {
     
@@ -43,7 +50,7 @@ public  void register(MemberRegisterRequest request){
         // 5. 建立會員物件，目前還沒有存入 DB
     Member member = new Member(
         request.getAccount(),
-        request.getPassword(), 
+        encodedPassword, 
         request.getName(), 
         request.getEmail()
     );
@@ -51,20 +58,27 @@ public  void register(MemberRegisterRequest request){
          // 6. 儲存到 DB
         memberRepository.save(member);
 }
+    public Member findOneById(Long id){
 
-
-
-
-// 1. 檢查帳號是否重複
-
-// 2. 檢查 Email 是否重複
-
-// 3. 將密碼轉成雜湊值
-
-// 4. 使用 Member 建構子建立會員
-
-// 5. 儲存會員
-
-// 6. 轉成 MemberResponse 並回傳
-
+        Optional<Member> member = 
+                memberRepository.findByIdAndStatus(id, "ACTIVE");
+        
+        if(member.isEmpty()){
+            throw new ResourceNotFoundException(
+            "member",
+        ResponseMessages.MEMBER_NOT_FOUND
+        );
+    }
+    
+    return member.get();
+    }
 }
+  
+
+
+
+
+
+
+
+

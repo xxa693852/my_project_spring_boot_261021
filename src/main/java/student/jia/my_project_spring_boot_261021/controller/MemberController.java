@@ -3,10 +3,13 @@ package student.jia.my_project_spring_boot_261021.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
+import student.jia.my_project_spring_boot_261021.response.MemberResponse;
 import jakarta.validation.Valid;
 import student.jia.my_project_spring_boot_261021.request.MemberRegisterRequest;
 import student.jia.my_project_spring_boot_261021.service.MemberService;
@@ -25,6 +28,14 @@ public class MemberController {
         this.memberService = memberService;
     }
 
+    @GetMapping ("/{id}")
+    @ResponseStatus (HttpStatus.OK) // 指定此 API 成功回應的 HTTP 狀態碼為 200 OK
+    // @PathVariable : 從 URL 路徑擷取目標會員 ID
+    public  MemberResponse getOneById(@PathVariable Long id){
+        return new MemberResponse(memberService.findOneById(id));
+    }
+
+
     //會員註冊
     @PostMapping
     @ResponseStatus (HttpStatus.CREATED)
@@ -33,6 +44,8 @@ public class MemberController {
                 memberService.register(request);
                 return new ApiResponse("會員註冊成功");
     }
+
+    
 
 
 }
