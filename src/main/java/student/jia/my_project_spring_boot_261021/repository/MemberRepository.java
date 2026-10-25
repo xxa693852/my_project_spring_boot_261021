@@ -13,6 +13,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByEmail(String email);  // 透過電子郵件
 
+    boolean existsByEmailAndIdNot(String email, Long id);
 
     // 找出單一會員By Id
     public Optional<Member> findOneById(@Param("id") long id);
@@ -20,6 +21,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
   // 依會員 ID 和狀態查詢
     Optional<Member> findByIdAndStatus(Long id, String status);
+
+    
+  Optional<Member> findByAccountAndStatus(String account, String status);
 
 }
 

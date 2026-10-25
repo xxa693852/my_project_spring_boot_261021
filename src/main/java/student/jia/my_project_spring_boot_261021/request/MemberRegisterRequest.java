@@ -26,7 +26,8 @@ public class MemberRegisterRequest {
     @NotBlank(message = ResponseMessages.MEMBER_CONFIRM_PASSWORD_REQUIRED)
     private String confirmPassword; //確認密碼
     //@Email email 必須符合 Email 格式
-    @Email(message = ResponseMessages.MEMBER_EMAIL_INVALID) 
+    @Email(message = ResponseMessages.MEMBER_EMAIL_INVALID)
+    @NotBlank (message = ResponseMessages.MAIL_ADDRESS_REQUIRED )
     @Size(max = 254, message = ResponseMessages.MEMBER_EMAIL_MAX)
     private String email;
 
