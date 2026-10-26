@@ -72,3 +72,14 @@ public class Member {
     }
 
 }
+
+//     id            BIGINT       NOT NULL AUTO_INCREMENT,
+//     account       VARCHAR(50)  NOT NULL,
+//     password_hash VARCHAR(255) NOT NULL,
+//     name          VARCHAR(50)  NOT NULL,
+//     email         VARCHAR(254) NOT NULL,
+//     role          VARCHAR(20)  NOT NULL DEFAULT 'MEMBER',
+//     status        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
+//     created_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+//     updated_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+//                                  ON UPDATE CURRENT_TIMESTAMP(6)

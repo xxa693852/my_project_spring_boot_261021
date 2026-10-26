@@ -57,7 +57,12 @@ public final class ResponseMessages {
     public static final String TOKEN_REQUIRED           = "40006"; // token 未填。
     public static final String PASSWORD_RESET_TOKEN_INVALID = "40007"; // 重設密碼 token 不合法或已過期。
     public static final String BOOK_ALREADY_SOLD        = "40008"; // 書籍已賣出。
-
+    // 活動與報名相關錯誤
+    public static final String EVENT_NOT_FOUND          = "40009"; //找不到活動
+    public static final String EVENT_NOT_OPEN           = "40010"; //活動未開放報名
+    public static final String EVENT_REGISTERED_REPEAT  = "40011"; //你已經報名這場活動
+    public static final String EVENT_REGISTRATION_DEADLINE_PASSED = "40012"; //活動報名已截止
+    public static final String EVENT_FULL               = "40013"; //活動報名人數已滿
     // 50000 區間：外接第三方服務通知相關錯誤。
     public static final String MAIL_SEND_FAILED         = "50000"; // 電子郵件寄送失敗。
 
@@ -110,7 +115,11 @@ public final class ResponseMessages {
         messages.put(PASSWORD_RESET_TOKEN_REQUIRED, "重設密碼 token 必填");
         messages.put(PASSWORD_RESET_TOKEN_INVALID, "重設密碼連結無效或已過期");
         messages.put(MEMBER_EMAIL_EXISTS,     "會員email已存在");
-    
+        messages.put(EVENT_NOT_FOUND,       "找不到活動");
+        messages.put(EVENT_NOT_OPEN,        "活動未開放報名");
+        messages.put(EVENT_REGISTERED_REPEAT, "你已經報名這場活動");
+        messages.put(EVENT_REGISTRATION_DEADLINE_PASSED, "活動報名已截止");
+        messages.put(EVENT_FULL,            "活動報名人數已滿");
         return messages;
     }
 

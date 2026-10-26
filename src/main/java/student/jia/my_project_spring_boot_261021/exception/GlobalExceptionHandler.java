@@ -50,6 +50,17 @@ public class GlobalExceptionHandler {
         Map.of(exception.getErrorKey(), message)
     );
     }
+    
+    // 處理報名條件不符等參數錯誤
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse handleIllegalArgument(
+            IllegalArgumentException exception) {
+
+        String message = resolveMessage(exception.getMessage());
+
+        return new ApiResponse(message);
+    }
 
 
     // Preserve literal messages when no message-code mapping exists.

@@ -67,3 +67,12 @@ public class Registration {
 
 
 }
+//     id            BIGINT      NOT NULL AUTO_INCREMENT,
+//     member_id     BIGINT      NOT NULL,
+//     event_id      BIGINT      NOT NULL,
+//     status        VARCHAR(20) NOT NULL DEFAULT 'REGISTERED',
+//     registered_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+//     cancelled_at  DATETIME(6) NULL,
+//     created_at    DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+//     updated_at    DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+//                               ON UPDATE CURRENT_TIMESTAMP(6),
