@@ -9,6 +9,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 
@@ -71,4 +76,13 @@ public class GlobalExceptionHandler {
         String message = ResponseMessages.getMessage(code);
         return message != null ? message : code;
     }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse handleMessageNotReadable(
+            HttpMessageNotReadableException exception) {
+
+        return new ApiResponse(
+                "請確認 JSON 語法與欄位型別；日期時間請使用 yyyy-MM-dd'T'HH:mm:ss 格式");
+}
 }

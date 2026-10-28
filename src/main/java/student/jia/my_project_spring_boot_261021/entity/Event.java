@@ -68,6 +68,30 @@ public class Event {
     protected Event() {
     }
 
+    public Event(
+        String title,
+        String description,
+        String hostName,
+        String location,
+        LocalDateTime startAt,
+        LocalDateTime endAt,
+        LocalDateTime registrationDeadline,
+        int capacity,
+        boolean beginnerFriendly,
+        Long createdBy) {
+
+        this.title = title;
+        this.description = description;
+        this.hostName = hostName;
+        this.location = location;
+        this.startAt = startAt;
+        this.endAt = endAt;
+        this.registrationDeadline = registrationDeadline;
+        this.capacity = capacity;
+        this.beginnerFriendly = beginnerFriendly;
+        this.createdBy = createdBy;
+    }
+
     @PrePersist
     public void prePersist() {
         LocalDateTime now = LocalDateTime.now();

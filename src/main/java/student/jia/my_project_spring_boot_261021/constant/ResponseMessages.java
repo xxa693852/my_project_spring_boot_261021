@@ -63,6 +63,9 @@ public final class ResponseMessages {
     public static final String EVENT_REGISTERED_REPEAT  = "40011"; //你已經報名這場活動
     public static final String EVENT_REGISTRATION_DEADLINE_PASSED = "40012"; //活動報名已截止
     public static final String EVENT_FULL               = "40013"; //活動報名人數已滿
+    public static final String REGISTRATION_NOT_FOUND   = "40014"; //找不到報名紀錄
+    public static final String REGISTRATION_ALREADY_CANCELLED ="40015"; //這筆報名已經取消
+    public static final String REGISTRATION_CANCELLATION_CLOSED = "40016"; //已超過取消期限，請聯絡管理員
     // 50000 區間：外接第三方服務通知相關錯誤。
     public static final String MAIL_SEND_FAILED         = "50000"; // 電子郵件寄送失敗。
 
@@ -120,6 +123,9 @@ public final class ResponseMessages {
         messages.put(EVENT_REGISTERED_REPEAT, "你已經報名這場活動");
         messages.put(EVENT_REGISTRATION_DEADLINE_PASSED, "活動報名已截止");
         messages.put(EVENT_FULL,            "活動報名人數已滿");
+        messages.put(REGISTRATION_NOT_FOUND ,     "找不到報名紀錄");
+        messages.put(REGISTRATION_ALREADY_CANCELLED,"這筆報名已經取消");
+        messages.put(REGISTRATION_CANCELLATION_CLOSED,"已超過取消期限，請聯絡管理員");
         return messages;
     }
 
