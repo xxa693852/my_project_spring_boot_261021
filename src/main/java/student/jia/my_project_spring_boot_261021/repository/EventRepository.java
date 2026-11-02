@@ -3,6 +3,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import student.jia.my_project_spring_boot_261021.entity.Event;
+import java.util.List;
+
 
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -22,5 +24,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE e.id = :id")
     Optional<Event> findByIdForUpdate(@Param("id") Long id);
 
-    
+    // 查詢指定狀態的活動，開始時間由近到遠排列
+List<Event> findByStatusOrderByStartAtAsc(String status);
 }

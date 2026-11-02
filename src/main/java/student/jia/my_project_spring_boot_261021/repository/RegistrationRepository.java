@@ -13,6 +13,9 @@ public interface RegistrationRepository
     Optional<Registration> findByMemberIdAndEventId(
             Long memberId, Long eventId);
 
+    // 取消整場活動時，查出仍有效的報名，逐筆更新狀態與取消時間。
+    List<Registration> findByEventIdAndStatus(Long eventId, String status);
+
     // 統計這場活動指定狀態的報名人數
     long countByEventIdAndStatus(Long eventId, String status);
 
