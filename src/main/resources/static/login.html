@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D&amp;D 會員登入</title>
+    <style>
+        body { max-width: 480px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
+        form { border: 1px solid #ccc; border-radius: 8px; padding: 24px; }
+        label { display: block; margin: 16px 0 6px; }
+        input { box-sizing: border-box; width: 100%; padding: 10px; font: inherit; }
+        button { margin-top: 20px; padding: 10px 24px; font: inherit; cursor: pointer; }
+        #message { min-height: 1.5em; }
+    </style>
+    <script src="/auth.js" defer></script>
+    <script src="/login.js" defer></script>
+</head>
+<body>
+    <a href="/events.html">← 返回活動列表</a>
+    <h1>會員登入</h1>
+    <form id="login-form">
+        <label for="account">帳號</label>
+        <input id="account" name="account" autocomplete="username" required autofocus>
+        <label for="password">密碼</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button id="submit" type="submit">登入</button>
+        <p id="message" role="status" aria-live="polite"></p>
+    </form>
+</body>
+</html>

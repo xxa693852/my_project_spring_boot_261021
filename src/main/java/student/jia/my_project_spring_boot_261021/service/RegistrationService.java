@@ -5,6 +5,10 @@ import student.jia.my_project_spring_boot_261021.entity.Event;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import student.jia.my_project_spring_boot_261021.response.RegistrationResponse;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
@@ -118,7 +122,7 @@ public class RegistrationService {
 
     // 查詢自己對某一場活動的報名紀錄，包含已取消的紀錄
    @Transactional(readOnly = true) //(readOnly = true)則是告訴 Spring：這個方法用途是讀取資料
-    public Registration findEventById(Long memberId, Long eventId) {
+    public RegistrationResponse findEventById(Long memberId, Long eventId) {
 
     Optional<Registration> registration =
             registrationRepository.findByMemberIdAndEventId(
@@ -130,15 +134,26 @@ public class RegistrationService {
                 ResponseMessages.REGISTRATION_NOT_FOUND);
     }
 
-    return registration.get();
+    return new RegistrationResponse(registration.get(), eventRepository.findById(eventId).orElse(null));
     }
 
    // 查詢自己的全部報名紀錄，包含已取消的紀錄
     @Transactional(readOnly = true)
-    public List<Registration> findMyRegistrations(Long memberId) {
-
-        return registrationRepository
-            .findByMemberIdOrderByRegisteredAtDesc(memberId);
+    public List<RegistrationResponse> findMyRegistrations(Long memberId) {
+        List<Registration> registrations = registrationRepository
+                .findByMemberIdOrderByRegisteredAtDesc(memberId);
+        if (registrations.isEmpty()) {
+            return List.of();
+        }
+        // Fetch all statuses, including CANCELLED, without one query per record.
+        List<Long> eventIds = registrations.stream()
+                .map(Registration::getEventId).distinct().toList();
+        Map<Long, Event> events = eventRepository.findAllById(eventIds).stream()
+                .collect(Collectors.toMap(Event::getId, Function.identity()));
+        return registrations.stream()
+                .map(registration -> new RegistrationResponse(
+                        registration, events.get(registration.getEventId())))
+                .toList();
     }
 
     // 取消自己對某場活動的報名

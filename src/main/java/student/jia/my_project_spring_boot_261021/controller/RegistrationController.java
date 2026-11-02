@@ -1,6 +1,6 @@
 package student.jia.my_project_spring_boot_261021.controller;
 
-import java.util.ArrayList;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import student.jia.my_project_spring_boot_261021.entity.Registration;
+
 import student.jia.my_project_spring_boot_261021.interceptor.AuthInterceptor;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 import student.jia.my_project_spring_boot_261021.response.RegistrationResponse;
@@ -53,10 +53,7 @@ public class RegistrationController {
             ) Long memberId,
             @PathVariable Long eventId) {
 
-        Registration registration =
-                registrationService.findEventById(memberId, eventId);
-
-        return new RegistrationResponse(registration);
+        return registrationService.findEventById(memberId, eventId);
     }
 
     // 查詢自己的全部報名紀錄
@@ -66,16 +63,7 @@ public class RegistrationController {
             name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE
         ) Long memberId) {
 
-        List<Registration> registrations =
-                registrationService.findMyRegistrations(memberId);
-
-        List<RegistrationResponse> responses = new ArrayList<>();
-
-        for (Registration registration : registrations) {
-            responses.add(new RegistrationResponse(registration));
-    }
-
-    return responses;
+        return registrationService.findMyRegistrations(memberId);
 }
     // 取消報名
     @DeleteMapping("/events/{eventId}")

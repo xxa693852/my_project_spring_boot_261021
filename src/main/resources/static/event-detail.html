@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D&amp;D 活動詳情</title>
+    <style>
+        body { max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
+        article { border: 1px solid #ccc; border-radius: 8px; padding: 24px; margin-top: 20px; }
+        .description { white-space: pre-wrap; }
+        nav { margin: 16px 0; }
+        button { padding: 8px 16px; font: inherit; cursor: pointer; }
+        #action-message { min-height: 1.5em; }
+    </style>
+    <script src="/auth.js" defer></script>
+    <script src="/event-detail.js" defer></script>
+</head>
+<body>
+    <a href="/events.html">← 返回活動列表</a>
+    <nav id="member-nav" aria-label="會員"></nav>
+    <p id="message" role="status">活動載入中……</p>
+    <article id="event-detail" hidden></article>
+    <section id="registration" aria-label="活動報名" hidden>
+        <p id="registration-status"></p>
+        <a id="login-link" hidden>登入後報名</a>
+        <button id="register-button" type="button" hidden>報名活動</button>
+        <button id="cancel-button" type="button" hidden>取消報名</button>
+        <p id="action-message" role="status" aria-live="polite"></p>
+    </section>
+</body>
+</html>
