@@ -1,3 +1,6 @@
+const destination = DndAuth.destination(new URLSearchParams(location.search).get("returnTo"));
+document.getElementById("register-link").href =
+    "/register.html?returnTo=" + encodeURIComponent(destination);
 const form = document.getElementById("login-form");
 const message = document.getElementById("message");
 const submit = document.getElementById("submit");
