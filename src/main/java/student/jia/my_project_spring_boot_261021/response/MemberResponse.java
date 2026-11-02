@@ -8,12 +8,14 @@ import lombok.Getter;
 @Getter 
 public class MemberResponse {
     
+    private String role;
     private  Long id;
     private  String name;
     private  String account;
     private  String email;
 
     public MemberResponse(Member member){
+        this.role = member.getRole();
         this.id  =  member.getId();
         this.name =  member.getName();
         this.account = member.getAccount();

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D&amp;D 會員設定</title>
+    <style>
+        body { max-width: 600px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
+        nav { margin: 16px 0; }
+        form { border: 1px solid #ccc; border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+        label { display: block; margin: 16px 0 6px; }
+        input { box-sizing: border-box; width: 100%; padding: 10px; font: inherit; }
+        button { margin-top: 16px; padding: 8px 16px; font: inherit; cursor: pointer; }
+        fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+        .field-error { color: #a32020; margin: 4px 0; }
+        [aria-invalid="true"] { border: 2px solid #a32020; }
+    </style>
+    <script src="/auth.js?v=20261102-settings" defer></script>
+    <script src="/member-settings.js" defer></script>
+</head>
+<body>
+    <a href="/events.html">← 返回活動列表</a>
+    <nav id="member-nav" aria-label="會員"></nav>
+    <h1>會員設定</h1>
+    <p id="message" role="status" aria-live="polite">會員資料載入中……</p>
+    <button id="retry" type="button" hidden>重新載入</button>
+    <div id="settings" hidden>
+        <form id="profile-form" novalidate>
+            <h2>個人資料</h2>
+            <fieldset>
+                <label for="account">帳號（僅供查看）</label>
+                <input id="account" name="account" readonly autocomplete="username">
+                <label for="name">姓名</label>
+                <input id="name" name="name" maxlength="50" required autocomplete="name" aria-describedby="name-error">
+                <p id="name-error" class="field-error"></p>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" maxlength="254" required autocomplete="email" aria-describedby="email-error">
+                <p id="email-error" class="field-error"></p>
+                <button type="submit">儲存個人資料</button>
+            </fieldset>
+            <p id="profile-message" role="status" aria-live="polite"></p>
+        </form>
+        <form id="password-form" novalidate>
+            <h2>修改密碼</h2>
+            <p>密碼修改成功後，既有登入仍有效；下次登入請使用新密碼。</p>
+            <fieldset>
+                <label for="oldPassword">舊密碼</label>
+                <input id="oldPassword" name="oldPassword" type="password" required autocomplete="current-password" aria-describedby="oldPassword-error">
+                <p id="oldPassword-error" class="field-error"></p>
+                <label for="password">新密碼（至少 6 字元）</label>
+                <input id="password" name="password" type="password" minlength="6" maxlength="255" required autocomplete="new-password" aria-describedby="password-error">
+                <p id="password-error" class="field-error"></p>
+                <label for="confirmPassword">確認新密碼</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" required autocomplete="new-password" aria-describedby="confirmPassword-error">
+                <p id="confirmPassword-error" class="field-error"></p>
+                <button type="submit">修改密碼</button>
+            </fieldset>
+            <p id="password-message" role="status" aria-live="polite"></p>
+        </form>
+    </div>
+</body>
+</html>

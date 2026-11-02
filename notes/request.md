@@ -41,3 +41,8 @@
 
     @NotNull(message = "請指定是否新手友善")
     private Boolean beginnerFriendly;
+
+
+
+
+    

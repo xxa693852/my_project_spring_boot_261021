@@ -1,6 +1,7 @@
 (() => {
     const KEY = "dnd.session";
     let queue = Promise.resolve();
+    let profilePromise;
     function session() {
         try { return JSON.parse(sessionStorage.getItem(KEY)) || null; }
         catch { return null; }
@@ -13,10 +14,10 @@
             accessToken: value.accessToken, refreshToken: value.refreshToken
         }));
     }
-    function clear() { sessionStorage.removeItem(KEY); }
+    function clear() { sessionStorage.removeItem(KEY); profilePromise = undefined; }
     // Only permit these local pages as login destinations.
     function destination(value) {
-        return /^\/(events\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
+        return /^\/(events\.html|admin-events\.html|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
             ? value : "/events.html";
     }
     function loginUrl() {
@@ -41,6 +42,20 @@
         const result = queue.then(() => perform(path, options));
         queue = result.catch(() => {});
         return result;
+    }
+    function currentMember(refresh = false) {
+        if (refresh) profilePromise = undefined;
+        if (!profilePromise) {
+            profilePromise = request("/members/me").then(async response => {
+                if (!response.ok) {
+                    const error = new Error(await errorMessage(response, "無法讀取會員資料。"));
+                    error.status = response.status;
+                    throw error;
+                }
+                return response.json();
+            }).catch(error => { profilePromise = undefined; throw error; });
+        }
+        return profilePromise;
     }
     async function errorMessage(response, fallback) {
         const data = await response.json().catch(() => ({}));
@@ -67,6 +82,11 @@
         myRegistrations.textContent = "我的報名";
         myRegistrations.style.marginRight = "16px";
         container.append(myRegistrations);
+        const settings = document.createElement("a");
+        settings.href = "/member-settings.html";
+        settings.textContent = "會員設定";
+        settings.style.marginRight = "16px";
+        container.append(settings);
         if (!session()) {
             const link = document.createElement("a");
             link.href = loginUrl();
@@ -87,8 +107,16 @@
             catch (error) { message.textContent = error.message; button.disabled = false; }
         });
         container.append(status, button, message);
+        currentMember().then(member => {
+            if (member.role !== "ADMIN" || !session()) return;
+            const link = document.createElement("a");
+            link.href = "/admin-events.html";
+            link.textContent = "活動管理";
+            link.style.marginLeft = "16px";
+            container.append(link);
+        }).catch(() => { /* Management APIs still enforce permissions. */ });
     }
-    window.DndAuth = { session, save, clear, destination, loginUrl, request, errorMessage, renderNav };
+    window.DndAuth = { session, save, clear, destination, loginUrl, request, errorMessage, renderNav, currentMember };
     const nav = document.getElementById("member-nav");
     if (nav) renderNav(nav);
 })();

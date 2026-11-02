@@ -2,6 +2,8 @@ package student.jia.my_project_spring_boot_261021.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
+import student.jia.my_project_spring_boot_261021.interceptor.AuthInterceptor;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,6 +37,12 @@ public class MemberController {
         this.memberService = memberService;
     }
     //單一會員ID查詢
+    @GetMapping("/me")
+    public MemberResponse currentMember(
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId) {
+        return new MemberResponse(memberService.findOneById(memberId));
+    }
+
     @GetMapping ("/{id}")
     @ResponseStatus (HttpStatus.OK) // 指定此 API 成功回應的 HTTP 狀態碼為 200 OK
     // @PathVariable : 從 URL 路徑擷取目標會員 ID
