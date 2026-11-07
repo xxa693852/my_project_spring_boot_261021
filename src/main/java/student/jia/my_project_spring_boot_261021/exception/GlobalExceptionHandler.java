@@ -1,18 +1,17 @@
 package student.jia.my_project_spring_boot_261021.exception;
 
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
@@ -40,8 +39,16 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse handleValidation(MethodArgumentNotValidException exception) {
         Map<String, String> errors = new LinkedHashMap<>();
-        exception.getBindingResult().getFieldErrors().forEach(error ->
-                errors.putIfAbsent(error.getField(), resolveMessage(error.getDefaultMessage())));
+        // @Valid 驗證失敗會進入此方法；先取出所有欄位錯誤，再逐筆整理成回應資料。
+        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
+        for (FieldError error : fieldErrors) {
+            String field = error.getField();
+            String message = resolveMessage(error.getDefaultMessage());
+            // 同一欄位可能有多個錯誤，維持原本只保留第一筆訊息的規則。
+            if (!errors.containsKey(field)) {
+                errors.put(field, message);
+            }
+        }
         return new ApiResponse(resolveMessage(ResponseMessages.VALIDATION_FAILED), errors);
     }
     // 處理Auth錯誤。
@@ -74,7 +81,11 @@ public class GlobalExceptionHandler {
             return "Invalid value";
         }
         String message = ResponseMessages.getMessage(code);
-        return message != null ? message : code;
+        // 找到錯誤代碼對應的中文訊息就回傳；沒有對應時保留原始訊息。
+        if (message != null) {
+            return message;
+        }
+        return code;
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

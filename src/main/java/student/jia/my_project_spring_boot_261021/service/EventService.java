@@ -305,10 +305,15 @@ public class EventService {
     // 玩家查詢活動詳情
     @Transactional(readOnly = true)
     public Event findPublicEventById(Long eventId) {
-        return eventRepository.findByIdAndStatus(eventId, "OPEN")
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "event",
-                    ResponseMessages.EVENT_NOT_FOUND));
+        // 只查詢開放中的活動，查詢結果先用 Optional 接住，再確認是否存在。
+        Optional<Event> optionalEvent =
+                eventRepository.findByIdAndStatus(eventId, "OPEN");
+        if (optionalEvent.isEmpty()) {
+            // 查無活動時由 GlobalExceptionHandler.handleResourceNotFound 回傳原本的 404 錯誤。
+            throw new ResourceNotFoundException(
+                    "event", ResponseMessages.EVENT_NOT_FOUND);
+        }
+        return optionalEvent.get();
     }
 
         // 查詢有效報名人數，組成活動回應

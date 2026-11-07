@@ -4,10 +4,13 @@ import org.springframework.stereotype.Service;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import student.jia.my_project_spring_boot_261021.response.RegistrationResponse;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -134,7 +137,15 @@ public class RegistrationService {
                 ResponseMessages.REGISTRATION_NOT_FOUND);
     }
 
-    return new RegistrationResponse(registration.get(), eventRepository.findById(eventId).orElse(null));
+    // 報名紀錄已確認存在，接著另外查詢活動，讓查詢與回傳步驟分開。
+    Registration targetRegistration = registration.get();
+    Optional<Event> optionalEvent = eventRepository.findById(eventId);
+    Event event = null;
+    if (optionalEvent.isPresent()) {
+        event = optionalEvent.get();
+    }
+    // 維持原本行為：活動不存在時仍回傳報名紀錄，活動相關欄位由回應物件處理。
+    return new RegistrationResponse(targetRegistration, event);
     }
 
    // 查詢自己的全部報名紀錄，包含已取消的紀錄
@@ -145,25 +156,44 @@ public class RegistrationService {
         if (registrations.isEmpty()) {
             return List.of();
         }
-        // Fetch all statuses, including CANCELLED, without one query per record.
-        List<Long> eventIds = registrations.stream()
-                .map(Registration::getEventId).distinct().toList();
-        Map<Long, Event> events = eventRepository.findAllById(eventIds).stream()
-                .collect(Collectors.toMap(Event::getId, Function.identity()));
-        return registrations.stream()
-                .map(registration -> new RegistrationResponse(
-                        registration, events.get(registration.getEventId())))
-                .toList();
+        // 1. 收集活動 ID。LinkedHashSet 可去除重複 ID，並保留第一次出現的順序。
+        Set<Long> uniqueEventIds = new LinkedHashSet<>();
+        for (Registration registration : registrations) {
+            uniqueEventIds.add(registration.getEventId());
+        }
+        List<Long> eventIds = new ArrayList<>(uniqueEventIds);
+
+        // 2. 一次查回所有相關活動，包含已取消的活動，避免每筆報名都查一次資料庫。
+        List<Event> relatedEvents = eventRepository.findAllById(eventIds);
+        Map<Long, Event> eventsById = new HashMap<>();
+        for (Event event : relatedEvents) {
+            // 以活動 ID 作為索引，下一步就能找到每筆報名對應的活動。
+            eventsById.put(event.getId(), event);
+        }
+
+        // 3. 依照原本的報名順序逐筆建立回應；找不到活動時，Map.get 會回傳 null。
+        List<RegistrationResponse> responses = new ArrayList<>();
+        for (Registration registration : registrations) {
+            Event event = eventsById.get(registration.getEventId());
+            RegistrationResponse response = new RegistrationResponse(registration, event);
+            responses.add(response);
+        }
+        // 原本 Stream.toList() 的結果不能被增刪，這裡也保留相同限制。
+        return Collections.unmodifiableList(responses);
     }
 
     // 取消自己對某場活動的報名
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancel(Long memberId, Long eventId) {
 
-    Event targetEvent = eventRepository
-        .findByIdForUpdate(eventId)
-        .orElseThrow(() -> new ResourceNotFoundException(
-            "event", ResponseMessages.EVENT_NOT_FOUND));
+    // 先查詢並鎖定活動，鎖定會維持到交易結束，保留原本避免同時修改的機制。
+    Optional<Event> optionalEvent = eventRepository.findByIdForUpdate(eventId);
+    if (optionalEvent.isEmpty()) {
+        // 查無活動時由 GlobalExceptionHandler.handleResourceNotFound 回傳原本的 404 錯誤。
+        throw new ResourceNotFoundException(
+                "event", ResponseMessages.EVENT_NOT_FOUND);
+    }
+    Event targetEvent = optionalEvent.get();
 
     // 接著保留原本查詢報名紀錄、檢查狀態的程式
         // 1. 查詢自己的報名紀錄

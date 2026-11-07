@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 import student.jia.my_project_spring_boot_261021.response.MemberResponse;
+import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.response.TokenResponse;
 import jakarta.validation.Valid;
 import student.jia.my_project_spring_boot_261021.request.MemberLoginRequest;
@@ -40,14 +41,18 @@ public class MemberController {
     @GetMapping("/me")
     public MemberResponse currentMember(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId) {
-        return new MemberResponse(memberService.findOneById(memberId));
+        // 先由 Service 查詢會員，再轉成 API 回應；查無會員的例外由 GlobalExceptionHandler 處理。
+        Member member = memberService.findOneById(memberId);
+        return new MemberResponse(member);
     }
 
     @GetMapping ("/{id}")
     @ResponseStatus (HttpStatus.OK) // 指定此 API 成功回應的 HTTP 狀態碼為 200 OK
     // @PathVariable : 從 URL 路徑擷取目標會員 ID
     public  MemberResponse getOneById(@PathVariable Long id){
-        return new MemberResponse(memberService.findOneById(id));
+        // Service 回傳 Member 實體，MemberResponse 再決定要提供給前端的欄位。
+        Member member = memberService.findOneById(id);
+        return new MemberResponse(member);
     }
 
 

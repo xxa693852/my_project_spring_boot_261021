@@ -171,9 +171,16 @@ public class AuthInterceptor implements HandlerInterceptor {
             throw new AuthException("refreshToken", ResponseMessages.TOKEN_INVALID);
         }
 
-        AuthToken oldToken = authTokenRepository
-                .findActiveByRefreshTokenHashAndOwnerType(jwtService.hashToken(refreshToken), AuthOwnerTypes.MEMBER)
-                .orElseThrow(() -> new AuthException("refreshToken", ResponseMessages.TOKEN_INVALID));
+        // 先計算雜湊，再查詢有效的 refresh token 紀錄，讓每個步驟都能單獨閱讀。
+        String refreshTokenHash = jwtService.hashToken(refreshToken);
+        Optional<AuthToken> optionalOldToken =
+                authTokenRepository.findActiveByRefreshTokenHashAndOwnerType(
+                        refreshTokenHash, AuthOwnerTypes.MEMBER);
+        if (optionalOldToken.isEmpty()) {
+            // 查無紀錄時由 GlobalExceptionHandler.handleAuth 回傳原本的 401 錯誤。
+            throw new AuthException("refreshToken", ResponseMessages.TOKEN_INVALID);
+        }
+        AuthToken oldToken = optionalOldToken.get();
 
         // refresh token rotation：舊 token 用過後立即撤銷，只能使用新 token。
         if (oldToken.getRefreshExpiresAt().isBefore(LocalDateTime.now())) {

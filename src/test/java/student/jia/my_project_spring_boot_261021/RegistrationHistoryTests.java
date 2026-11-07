@@ -2,6 +2,7 @@ package student.jia.my_project_spring_boot_261021;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
@@ -78,6 +79,42 @@ class RegistrationHistoryTests {
         when(events.findAllById(List.of(99L))).thenReturn(List.of());
         RegistrationResponse result = service.findMyRegistrations(7L).getFirst();
         assertEquals(99L, result.getEventId());
+        assertNull(result.getEventTitle());
+        assertFalse(result.isCanCancel());
+    }
+
+    @Test
+    void repeatedEventIdsAreQueriedOnceWithoutDroppingRegistrations() {
+        // 活動 ID 去重只影響批次查詢，不應減少報名紀錄的筆數或改變順序。
+        Event relatedEvent = event(11L, "OPEN", LocalDateTime.now().plusDays(1));
+        Registration first = new Registration(7L, 11L);
+        Registration second = new Registration(7L, 11L);
+        second.setStatus("CANCELLED");
+        when(registrations.findByMemberIdOrderByRegisteredAtDesc(7L))
+                .thenReturn(List.of(first, second));
+        when(events.findAllById(List.of(11L))).thenReturn(List.of(relatedEvent));
+
+        List<RegistrationResponse> result = service.findMyRegistrations(7L);
+
+        assertEquals(2, result.size());
+        assertEquals("REGISTERED", result.get(0).getStatus());
+        assertEquals("CANCELLED", result.get(1).getStatus());
+        verify(events).findAllById(List.of(11L));
+        verifyNoMoreInteractions(events);
+    }
+
+    @Test
+    void singleRegistrationSurvivesMissingEvent() {
+        // 查無活動仍應保留報名紀錄，不因 Optional 寫法調整而新增例外。
+        Registration registration = new Registration(7L, 99L);
+        when(registrations.findByMemberIdAndEventId(7L, 99L))
+                .thenReturn(Optional.of(registration));
+        when(events.findById(99L)).thenReturn(Optional.empty());
+
+        RegistrationResponse result = service.findEventById(7L, 99L);
+
+        assertEquals(99L, result.getEventId());
+        assertEquals("REGISTERED", result.getStatus());
         assertNull(result.getEventTitle());
         assertFalse(result.isCanCancel());
     }

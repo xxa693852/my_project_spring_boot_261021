@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import java.util.List;
 import java.util.Optional;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.entity.Member;
@@ -111,25 +112,7 @@ public  void register(MemberRegisterRequest request){
             targetMember.setEmail(email);
             targetMember.setName(request.getName().trim());
         }
-/*@Transactional 簡練的寫法，同上面修改會員資料一樣
-public void updateProfile(Long id, MemberUpdateRequest request) {
-    Member targetMember = memberRepository
-        .findByIdAndStatus(id, "ACTIVE")
-        .orElseThrow(() -> new ResourceNotFoundException(
-            "member", ResponseMessages.MEMBER_NOT_FOUND));
-
-    String email = request.getEmail().trim();
-
-    // 檢查其他會員是否使用這個 Email，排除自己
-    if (memberRepository.existsByEmailAndIdNot(email, id)) {
-        throw new MemberAccountExcption(
-            "email", ResponseMessages.MEMBER_EMAIL_EXISTS);
-    }
-
-    targetMember.setName(request.getName().trim());
-    targetMember.setEmail(email);
-}
-*/
+// 會員資料修改以保留在上方的傳統 Optional 判斷為準。
 
 
 
@@ -164,10 +147,15 @@ public void updateProfile(Long id, MemberUpdateRequest request) {
   public TokenResponse login(MemberLoginRequest request) {
     String account = request.getAccount().trim();
      //1. 給repository找
-      Member member = memberRepository
-        .findByAccountAndStatus(account, "ACTIVE")
-        .orElseThrow(() -> new MemberAccountExcption(
-            "account", ResponseMessages.MEMBER_LOGIN_FAILED));
+    // 查詢回傳 Optional，可能有會員，也可能查不到；先判斷才能取出資料。
+    Optional<Member> optionalMember =
+            memberRepository.findByAccountAndStatus(account, "ACTIVE");
+    if (optionalMember.isEmpty()) {
+        // 查無會員時交給 GlobalExceptionHandler.handleMemberAccount 回傳原本的登入錯誤。
+        throw new MemberAccountExcption(
+                "account", ResponseMessages.MEMBER_LOGIN_FAILED);
+    }
+    Member member = optionalMember.get();
         
         if (!passwordEncoder.matches(
             request.getPassword(), member.getPassword())) {
@@ -199,11 +187,16 @@ public void updateProfile(Long id, MemberUpdateRequest request) {
     public void logout(String refreshToken) {
         String tokenHash = jwtService.hashToken(refreshToken);
 
-        AuthToken authToken = authTokenRepository
-            .findActiveByRefreshTokenHashAndOwnerType(
-                tokenHash, AuthOwnerTypes.MEMBER)
-            .orElseThrow(() -> new AuthException(
-                "refreshToken", ResponseMessages.TOKEN_INVALID));
+        // 以 refresh token 的雜湊查詢有效登入紀錄，Optional 為空表示沒有可登出的紀錄。
+        Optional<AuthToken> optionalAuthToken =
+                authTokenRepository.findActiveByRefreshTokenHashAndOwnerType(
+                        tokenHash, AuthOwnerTypes.MEMBER);
+        if (optionalAuthToken.isEmpty()) {
+            // 驗證失敗時由 GlobalExceptionHandler.handleAuth 回傳原本的 401 錯誤。
+            throw new AuthException(
+                    "refreshToken", ResponseMessages.TOKEN_INVALID);
+        }
+        AuthToken authToken = optionalAuthToken.get();
 
         authToken.setRevoked(TOKEN_REVOKED);
         authToken.setDeletedAt(LocalDateTime.now());
@@ -230,13 +223,15 @@ public void updateProfile(Long id, MemberUpdateRequest request) {
     // 撤銷這位會員所有尚未撤銷的登入紀錄
     LocalDateTime now = LocalDateTime.now();
 
-    authTokenRepository
-    .findByOwnerTypeAndOwnerIdAndRevoked(
-        AuthOwnerTypes.MEMBER, id, (byte) 0)
-    .forEach(token -> {
+    // 先取得此會員尚未撤銷的登入紀錄，再逐筆設定撤銷狀態與同一個刪除時間。
+    List<AuthToken> activeTokens =
+            authTokenRepository.findByOwnerTypeAndOwnerIdAndRevoked(
+                    AuthOwnerTypes.MEMBER, id, (byte) 0);
+    for (AuthToken token : activeTokens) {
         token.setRevoked(TOKEN_REVOKED);
         token.setDeletedAt(now);
-    });
+    }
+    // 這些紀錄在同一個 @Transactional 交易中查出，JPA 會在交易提交時更新資料。
       
     }
 

@@ -1,0 +1,366 @@
+package student.jia.my_project_spring_boot_261021;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.transaction.AfterTransaction;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
+
+import student.jia.my_project_spring_boot_261021.constant.AuthOwnerTypes;
+import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
+import student.jia.my_project_spring_boot_261021.entity.AuthToken;
+import student.jia.my_project_spring_boot_261021.entity.Event;
+import student.jia.my_project_spring_boot_261021.entity.Member;
+import student.jia.my_project_spring_boot_261021.entity.Registration;
+import student.jia.my_project_spring_boot_261021.repository.AuthTokenRepository;
+import student.jia.my_project_spring_boot_261021.repository.EventRepository;
+import student.jia.my_project_spring_boot_261021.repository.MemberRepository;
+import student.jia.my_project_spring_boot_261021.repository.RegistrationRepository;
+import student.jia.my_project_spring_boot_261021.request.MemberLoginRequest;
+import student.jia.my_project_spring_boot_261021.request.MemberPasswordUpdateRequest;
+import student.jia.my_project_spring_boot_261021.request.MemberRegisterRequest;
+import student.jia.my_project_spring_boot_261021.request.MemberUpdateRequest;
+import student.jia.my_project_spring_boot_261021.response.RegistrationResponse;
+import student.jia.my_project_spring_boot_261021.response.TokenResponse;
+import student.jia.my_project_spring_boot_261021.service.JwtService;
+import student.jia.my_project_spring_boot_261021.service.MemberService;
+import student.jia.my_project_spring_boot_261021.service.RegistrationService;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+// 使用真實 Spring 元件與 MySQL；每個測試結束後，Spring 會回滾測試交易。
+// MockMvc 經過實際 Controller、Interceptor 與 ExceptionHandler，但不開放網路服務埠。
+@SpringBootTest(properties = "spring.jpa.show-sql=false")
+@Transactional
+class DatabaseIntegrationTests {
+    private static final String PASSWORD = "TestPassword123!";
+
+    @Autowired private WebApplicationContext context;
+    @Autowired private EntityManager entityManager;
+    @Autowired private MemberService memberService;
+    @Autowired private RegistrationService registrationService;
+    @Autowired private JwtService jwtService;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private MemberRepository members;
+    @Autowired private EventRepository events;
+    @Autowired private RegistrationRepository registrations;
+    @Autowired private AuthTokenRepository tokens;
+
+    private MockMvc mvc;
+    private final List<Long> createdMemberIds = new ArrayList<>();
+    private final List<Long> createdEventIds = new ArrayList<>();
+
+    @AfterTransaction
+    void verifyTestDataWasRolledBack() {
+        // 在 Spring 回滾交易之後重新查詢，確認案例建立的資料沒有留在資料庫。
+        for (Long memberId : createdMemberIds) {
+            assertFalse(members.existsById(memberId), "測試會員應已回滾");
+        }
+        for (Long eventId : createdEventIds) {
+            assertFalse(events.existsById(eventId), "測試活動應已回滾");
+        }
+    }
+
+    @BeforeEach
+    void prepare() {
+        // 在建立案例資料前確認正在使用測試 schema，避免誤寫正式資料庫。
+        String database = (String) entityManager.createNativeQuery("SELECT DATABASE()").getSingleResult();
+        assertEquals("dnd_event_prod_test", database);
+        mvc = MockMvcBuilders.webAppContextSetup(context).build();
+    }
+
+    @Test
+    void registrationCancellationAndReregistrationPersistThroughApi() throws Exception {
+        Member member = createMember();
+        TokenResponse login = login(member);
+        Event event = createEvent(member.getId(), 2);
+
+        mvc.perform(post("/registration").header("Authorization", bearer(login))
+                .param("eventId", event.getId().toString()))
+                .andExpect(status().isCreated());
+        reloadFromDatabase();
+        Optional<Registration> optionalOriginal =
+                registrations.findByMemberIdAndEventId(member.getId(), event.getId());
+        assertTrue(optionalOriginal.isPresent());
+        Registration original = optionalOriginal.get();
+        Long registrationId = original.getId();
+        assertEquals("REGISTERED", original.getStatus());
+
+        mvc.perform(delete("/registration/events/" + event.getId()).header("Authorization", bearer(login)))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        Optional<Registration> optionalCancelled = registrations.findById(registrationId);
+        assertTrue(optionalCancelled.isPresent());
+        Registration cancelled = optionalCancelled.get();
+        assertEquals("CANCELLED", cancelled.getStatus());
+        assertNotNull(cancelled.getCancelledAt());
+        mvc.perform(get("/registration").header("Authorization", bearer(login)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("CANCELLED"))
+                .andExpect(jsonPath("$[0].canCancel").value(false));
+
+        mvc.perform(post("/registration").header("Authorization", bearer(login))
+                .param("eventId", event.getId().toString()))
+                .andExpect(status().isCreated());
+        reloadFromDatabase();
+        Optional<Registration> optionalRestored =
+                registrations.findByMemberIdAndEventId(member.getId(), event.getId());
+        assertTrue(optionalRestored.isPresent());
+        Registration restored = optionalRestored.get();
+        assertEquals(registrationId, restored.getId());
+        assertEquals("REGISTERED", restored.getStatus());
+        assertNull(restored.getCancelledAt());
+        assertEquals(1L, registrations.countByEventIdAndStatus(event.getId(), "REGISTERED"));
+    }
+
+    @Test
+    void duplicateRegistrationAndFullCapacityKeepOriginalErrors() throws Exception {
+        Member first = createMember();
+        Member second = createMember();
+        TokenResponse firstLogin = login(first);
+        TokenResponse secondLogin = login(second);
+        Event event = createEvent(first.getId(), 1);
+        registrationService.register(first.getId(), event.getId());
+        reloadFromDatabase();
+
+        mvc.perform(post("/registration").header("Authorization", bearer(firstLogin))
+                .param("eventId", event.getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(ResponseMessages.getMessage(ResponseMessages.EVENT_REGISTERED_REPEAT)));
+        mvc.perform(post("/registration").header("Authorization", bearer(secondLogin))
+                .param("eventId", event.getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(ResponseMessages.getMessage(ResponseMessages.EVENT_FULL)));
+        assertEquals(1L, registrations.countByEventIdAndStatus(event.getId(), "REGISTERED"));
+        assertTrue(registrations.findByMemberIdAndEventId(second.getId(), event.getId()).isEmpty());
+    }
+
+    @Test
+    void deadlinePreventsRegistrationAndCancellation() throws Exception {
+        Member member = createMember();
+        TokenResponse login = login(member);
+        Event event = createEvent(member.getId(), 2);
+        event.setRegistrationDeadline(LocalDateTime.now().minusMinutes(1));
+        Registration registration = registrations.saveAndFlush(new Registration(member.getId(), event.getId()));
+        reloadFromDatabase();
+
+        mvc.perform(post("/registration").header("Authorization", bearer(login))
+                .param("eventId", event.getId().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(ResponseMessages.getMessage(ResponseMessages.EVENT_REGISTRATION_DEADLINE_PASSED)));
+        mvc.perform(delete("/registration/events/" + event.getId()).header("Authorization", bearer(login)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(ResponseMessages.getMessage(ResponseMessages.REGISTRATION_CANCELLATION_CLOSED)));
+        reloadFromDatabase();
+        Optional<Registration> stored = registrations.findById(registration.getId());
+        assertTrue(stored.isPresent());
+        assertEquals("REGISTERED", stored.get().getStatus());
+    }
+
+    @Test
+    void historyPreservesOrderAndIncludesCancelledEvents() {
+        Member member = createMember();
+        Event open = createEvent(member.getId(), 2);
+        Event cancelled = createEvent(member.getId(), 2);
+        cancelled.setStatus("CANCELLED");
+        Registration older = registrations.saveAndFlush(new Registration(member.getId(), open.getId()));
+        older.setRegisteredAt(LocalDateTime.now().minusHours(2));
+        Registration newer = registrations.saveAndFlush(new Registration(member.getId(), cancelled.getId()));
+        newer.setStatus("CANCELLED");
+        newer.setCancelledAt(LocalDateTime.now());
+        reloadFromDatabase();
+
+        List<RegistrationResponse> history = registrationService.findMyRegistrations(member.getId());
+
+        assertEquals(2, history.size());
+        assertEquals(cancelled.getId(), history.get(0).getEventId());
+        assertEquals(cancelled.getTitle(), history.get(0).getEventTitle());
+        assertEquals("CANCELLED", history.get(0).getEventStatus());
+        assertFalse(history.get(0).isCanCancel());
+        assertEquals(open.getId(), history.get(1).getEventId());
+        assertTrue(history.get(1).isCanCancel());
+    }
+
+    @Test
+    void profilePasswordAndLogoutChangesReachDatabase() throws Exception {
+        Member member = createMember();
+        TokenResponse login = login(member);
+        MemberUpdateRequest profile = new MemberUpdateRequest();
+        profile.setName("Updated Member");
+        profile.setEmail("updated-" + UUID.randomUUID() + "@example.com");
+        memberService.updateProfile(member.getId(), profile);
+        MemberPasswordUpdateRequest password = new MemberPasswordUpdateRequest();
+        password.setOldPassword(PASSWORD);
+        password.setPassword("ChangedPassword123!");
+        password.setConfirmPassword("ChangedPassword123!");
+        memberService.updatePassword(member.getId(), password);
+        reloadFromDatabase();
+
+        Optional<Member> optionalStored = members.findById(member.getId());
+        assertTrue(optionalStored.isPresent());
+        Member stored = optionalStored.get();
+        assertEquals(profile.getName(), stored.getName());
+        assertEquals(profile.getEmail(), stored.getEmail());
+        assertTrue(passwordEncoder.matches("ChangedPassword123!", stored.getPassword()));
+        assertFalse(passwordEncoder.matches(PASSWORD, stored.getPassword()));
+        mvc.perform(get("/members/me").header("Authorization", bearer(login)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Updated Member"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+
+        mvc.perform(post("/members/logout").contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", bearer(login))
+                .content("{\"refreshToken\":\"" + login.getRefreshToken() + "\"}"))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        assertTrue(tokens.findActiveByAccessTokenHashAndOwnerType(
+                jwtService.hashToken(login.getAccessToken()), AuthOwnerTypes.MEMBER).isEmpty());
+        mvc.perform(get("/members/me").header("Authorization", bearer(login)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void disablingMemberPersistsRevocationOfAllTokens() {
+        Member member = createMember();
+        TokenResponse login = login(member);
+        // 另外建立一筆登入紀錄，確認迴圈不只撤銷第一筆 Token。
+        AuthToken additional = tokens.saveAndFlush(new AuthToken(AuthOwnerTypes.MEMBER, member.getId(),
+                jwtService.hashToken("access-" + UUID.randomUUID()),
+                jwtService.hashToken("refresh-" + UUID.randomUUID()),
+                LocalDateTime.now().plusHours(1), LocalDateTime.now().plusDays(1)));
+        reloadFromDatabase();
+
+        memberService.disableMember(member.getId());
+        reloadFromDatabase();
+
+        Optional<Member> storedMember = members.findById(member.getId());
+        assertTrue(storedMember.isPresent());
+        assertEquals("DISABLED", storedMember.get().getStatus());
+        assertTrue(tokens.findByOwnerTypeAndOwnerIdAndRevoked(AuthOwnerTypes.MEMBER, member.getId(), (byte) 0).isEmpty());
+        Optional<AuthToken> storedToken = tokens.findById(additional.getId());
+        assertTrue(storedToken.isPresent());
+        assertEquals((byte) 1, storedToken.get().getRevoked());
+        assertNotNull(storedToken.get().getDeletedAt());
+        assertTrue(tokens.findActiveByRefreshTokenHashAndOwnerType(
+                jwtService.hashToken(login.getRefreshToken()), AuthOwnerTypes.MEMBER).isEmpty());
+    }
+
+    @Test
+    void expiredAccessTokenRotatesTokensAndRevokesOldRecord() throws Exception {
+        Member member = createMember();
+        LocalDateTime accessExpiry = LocalDateTime.now().minusMinutes(5);
+        LocalDateTime refreshExpiry = LocalDateTime.now().plusDays(1);
+        String access = jwtService.generateAccessToken(AuthOwnerTypes.MEMBER, member.getId(), accessExpiry);
+        String refresh = jwtService.generateRefreshToken(AuthOwnerTypes.MEMBER, member.getId(), refreshExpiry);
+        AuthToken old = tokens.saveAndFlush(new AuthToken(AuthOwnerTypes.MEMBER, member.getId(),
+                jwtService.hashToken(access), jwtService.hashToken(refresh), accessExpiry, refreshExpiry));
+        reloadFromDatabase();
+
+        MvcResult result = mvc.perform(get("/members/me").header("Authorization", "Bearer " + access)
+                .header("X-Refresh-Token", refresh))
+                .andExpect(status().isOk()).andExpect(header().exists("X-New-Access-Token"))
+                .andExpect(header().exists("X-New-Refresh-Token")).andReturn();
+        String newAccess = result.getResponse().getHeader("X-New-Access-Token");
+        String newRefresh = result.getResponse().getHeader("X-New-Refresh-Token");
+        reloadFromDatabase();
+        Optional<AuthToken> storedOldToken = tokens.findById(old.getId());
+        assertTrue(storedOldToken.isPresent());
+        assertEquals((byte) 1, storedOldToken.get().getRevoked());
+        assertNotNull(storedOldToken.get().getDeletedAt());
+        assertNotEquals(access, newAccess);
+        assertNotEquals(refresh, newRefresh);
+        assertTrue(tokens.findActiveByAccessTokenHashAndOwnerType(
+                jwtService.hashToken(newAccess), AuthOwnerTypes.MEMBER).isPresent());
+        mvc.perform(get("/members/me").header("Authorization", "Bearer " + newAccess))
+                .andExpect(status().isOk());
+        mvc.perform(get("/members/me").header("Authorization", "Bearer " + access)
+                .header("X-Refresh-Token", refresh)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void authenticationAndOwnershipChecksRejectInvalidRequests() throws Exception {
+        Member member = createMember();
+        Member other = createMember();
+        TokenResponse login = login(member);
+        mvc.perform(get("/members/me")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/members/me").header("Authorization", "Bearer invalid"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/members/" + other.getId()).header("Authorization", bearer(login)))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/members/logout").header("Authorization", bearer(login))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"refreshToken\":\"missing\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errors.refreshToken").value(ResponseMessages.getMessage(ResponseMessages.TOKEN_INVALID)));
+    }
+
+    @Test
+    void validationAndMissingResourcesUseOriginalHttpResponses() throws Exception {
+        mvc.perform(post("/members").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.account").exists())
+                .andExpect(jsonPath("$.errors.password").exists());
+        mvc.perform(get("/events/" + Long.MAX_VALUE)).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(ResponseMessages.getMessage(ResponseMessages.EVENT_NOT_FOUND)));
+        mvc.perform(post("/members/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"account\":\"missing-" + UUID.randomUUID() + "\",\"password\":\"password\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.account").value(ResponseMessages.getMessage(ResponseMessages.MEMBER_LOGIN_FAILED)));
+    }
+
+    private Member createMember() {
+        // 每個案例使用獨立帳號，不依賴既有 seed 或固定 ID。
+        String suffix = UUID.randomUUID().toString().replace("-", "");
+        MemberRegisterRequest request = new MemberRegisterRequest();
+        request.setAccount("it_" + suffix);
+        request.setName("Integration Member");
+        request.setEmail("it_" + suffix + "@example.com");
+        request.setPassword(PASSWORD);
+        request.setConfirmPassword(PASSWORD);
+        memberService.register(request);
+        Optional<Member> member = members.findByAccountAndStatus(request.getAccount(), "ACTIVE");
+        assertTrue(member.isPresent());
+        createdMemberIds.add(member.get().getId());
+        return member.get();
+    }
+
+    private TokenResponse login(Member member) {
+        MemberLoginRequest request = new MemberLoginRequest();
+        request.setAccount(member.getAccount());
+        request.setPassword(PASSWORD);
+        return memberService.login(request);
+    }
+
+    private Event createEvent(Long ownerId, int capacity) {
+        LocalDateTime now = LocalDateTime.now();
+        Event event = new Event("Integration Event " + UUID.randomUUID(), "Description", "Host", "Taipei",
+                now.plusDays(2), now.plusDays(3), now.plusDays(1), capacity, true, ownerId);
+        Event saved = events.saveAndFlush(event);
+        createdEventIds.add(saved.getId());
+        return saved;
+    }
+
+    private String bearer(TokenResponse login) {
+        return "Bearer " + login.getAccessToken();
+    }
+
+    private void reloadFromDatabase() {
+        // flush 將變更送到 MySQL；clear 清除 JPA 快取，後續查詢才會重新讀取資料庫。
+        // 這不會提交交易，案例結束後仍會回滾。
+        entityManager.flush();
+        entityManager.clear();
+    }
+}
