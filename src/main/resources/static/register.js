@@ -16,6 +16,13 @@ function clearErrors() {
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (submitting) return;
+    // 調整：立即提示長度與 bytes 錯誤；後端仍會再次驗證。
+    const passwordError = DndPasswordRules.message(form.elements.password.value, true);
+    if (passwordError) {
+        message.textContent = passwordError;
+        form.elements.password.focus();
+        return;
+    }
     submitting = true;
     submit.disabled = true;
     clearErrors();

@@ -18,6 +18,7 @@ public class MemberUpdateRequest {
     //@Email email 必須符合 Email 格式
     @Email(message = ResponseMessages.MEMBER_EMAIL_INVALID)
     @NotBlank (message = ResponseMessages.MAIL_ADDRESS_REQUIRED )
+    // 調整確認：Email 上限與資料庫 VARCHAR(254)、前端一致。
     @Size(max = 254, message = ResponseMessages.MEMBER_EMAIL_MAX)
     private String email;
 

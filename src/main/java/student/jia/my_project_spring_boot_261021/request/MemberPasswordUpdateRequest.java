@@ -10,7 +10,8 @@ import lombok.Setter;
 @Setter
 public class MemberPasswordUpdateRequest {
     @NotBlank (message = ResponseMessages.MEMBER_PASSWORD_REQUIRED)
-    @Size(max =255, min = 6 , message = ResponseMessages.MEMBER_PASSWORD_SIZE)
+    // 調整：新密碼統一 15～72 字元；UTF-8 的 72 bytes 限制由 Service 檢查。
+    @Size(min = 15, max = 72, message = ResponseMessages.MEMBER_PASSWORD_SIZE)
     private  String password;
 
     @NotBlank (message = ResponseMessages.MEMBER_CONFIRM_PASSWORD_REQUIRED)

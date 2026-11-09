@@ -15,6 +15,8 @@
         .field-error { color: #a32020; margin: 4px 0; }
         [aria-invalid="true"] { border: 2px solid #a32020; }
     </style>
+    <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
+    <script src="/password-rules.js?v=20261110" defer></script>
     <script src="/auth.js?v=20261102-settings" defer></script>
     <script src="/member-settings.js" defer></script>
 </head>
@@ -33,7 +35,8 @@
                 <label for="name">姓名</label>
                 <input id="name" name="name" maxlength="50" required autocomplete="name" aria-describedby="name-error">
                 <p id="name-error" class="field-error"></p>
-                <label for="email">Email</label>
+                <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
+        <label for="email">Email</label>
                 <input id="email" name="email" type="email" maxlength="254" required autocomplete="email" aria-describedby="email-error">
                 <p id="email-error" class="field-error"></p>
                 <button type="submit">儲存個人資料</button>
@@ -47,8 +50,8 @@
                 <label for="oldPassword">舊密碼</label>
                 <input id="oldPassword" name="oldPassword" type="password" required autocomplete="current-password" aria-describedby="oldPassword-error">
                 <p id="oldPassword-error" class="field-error"></p>
-                <label for="password">新密碼（至少 6 字元）</label>
-                <input id="password" name="password" type="password" minlength="6" maxlength="255" required autocomplete="new-password" aria-describedby="password-error">
+                <label for="password">新密碼（15～72 字元，UTF-8 不超過 72 bytes）</label>
+                <input id="password" name="password" type="password" minlength="15" maxlength="72" required autocomplete="new-password" aria-describedby="password-error">
                 <p id="password-error" class="field-error"></p>
                 <label for="confirmPassword">確認新密碼</label>
                 <input id="confirmPassword" name="confirmPassword" type="password" required autocomplete="new-password" aria-describedby="confirmPassword-error">

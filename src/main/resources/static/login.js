@@ -6,6 +6,12 @@ const message = document.getElementById("message");
 const submit = document.getElementById("submit");
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    // 調整：既有短密碼仍可登入，僅檢查 BCrypt bytes 上限。
+    const passwordError = DndPasswordRules.message(form.elements.password.value, false);
+    if (passwordError) {
+        message.textContent = passwordError;
+        return;
+    }
     submit.disabled = true;
     message.textContent = "登入中……";
     try {

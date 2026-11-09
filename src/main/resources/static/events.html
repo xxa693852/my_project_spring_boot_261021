@@ -39,7 +39,7 @@
             element.textContent = text;
             card.appendChild(element);
         }
-
+           // 定義這個方法要做的事情
         async function loadEvents() {
             try {
                 // 呼叫與這個網頁相同主機的 GET /events
@@ -100,7 +100,7 @@
         }
 
         // 開啟頁面時執行
-        loadEvents();
+        loadEvents(); // 實際叫它開始執行
     </script>
 </body>
 </html>

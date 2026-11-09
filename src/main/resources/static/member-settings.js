@@ -44,6 +44,15 @@ function bindForm(form, names, path, resultId) {
         }
         const body = {};
         for (const key of names) body[key] = form.elements[key].value;
+        // 調整：新密碼檢查完整規則；舊密碼僅檢查 bytes。
+        if (path === "password") {
+            const passwordError = DndPasswordRules.message(body.password, true);
+            const oldPasswordError = DndPasswordRules.message(body.oldPassword, false);
+            if (passwordError || oldPasswordError) {
+                result.textContent = passwordError || oldPasswordError;
+                return;
+            }
+        }
         setBusy(true);
         result.textContent = "儲存中……";
         let saved = false;

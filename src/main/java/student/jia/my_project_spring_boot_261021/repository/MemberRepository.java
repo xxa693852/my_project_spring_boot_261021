@@ -22,8 +22,17 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
   // 依會員 ID 和狀態查詢
     Optional<Member> findByIdAndStatus(Long id, String status);
 
-    
+  //會員忘記密碼用
+  Optional<Member> findByEmailAndStatus(String email, String status);  
+
   Optional<Member> findByAccountAndStatus(String account, String status);
+
+    @Query(
+        value ="SELECT * FROM members WHERE line_uid = :lineUid AND status = 1",nativeQuery  = true
+    )
+    Optional<Member> findOneByLineUidAndStatus(
+        @Param("lineUid") String lineUid
+    );
 
 }
 

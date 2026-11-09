@@ -10,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-
+import student.jia.my_project_spring_boot_261021.repository.PasswordResetTokenRepository;
 import student.jia.my_project_spring_boot_261021.constant.AuthOwnerTypes;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.entity.AuthToken;
@@ -24,7 +24,7 @@ import student.jia.my_project_spring_boot_261021.request.MemberLoginRequest;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 import student.jia.my_project_spring_boot_261021.service.JwtService;
 import student.jia.my_project_spring_boot_261021.service.MemberService;
-
+import student.jia.my_project_spring_boot_261021.service.MailService;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -34,10 +34,21 @@ class TraditionalStyleRegressionTests {
     private final AuthTokenRepository tokens = mock(AuthTokenRepository.class);
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final JwtService jwtService = mock(JwtService.class);
-    private final MemberService service =
-            new MemberService(members, passwordEncoder, jwtService, tokens);
+    private final PasswordResetTokenRepository resetTokens =
+        mock(PasswordResetTokenRepository.class);
+    private final MailService mailService = mock(MailService.class);
+    private final MemberService service = 
+        new MemberService(
+             members,
+             passwordEncoder, 
+             jwtService,
+             mailService,
+              tokens, 
+              resetTokens,  
+              "http://localhost:8080",
+              30L);
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
-
+    
     @Test
     void validationKeepsFirstMessageAndFieldOrder() {
         // 同一欄位有多個錯誤時，仍只回傳第一筆，欄位排列也維持原順序。

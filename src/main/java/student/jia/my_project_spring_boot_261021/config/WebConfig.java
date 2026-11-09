@@ -27,7 +27,9 @@ public class WebConfig implements WebMvcConfigurer {
             )
             .excludePathPatterns(
                 "/members",
-                "/members/login"
+                "/members/login",
+                "/members/forgot-password",
+                "/members/reset-password"
             );
     }
 }

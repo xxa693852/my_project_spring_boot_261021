@@ -20,7 +20,8 @@ public class MemberRegisterRequest {
     private String account;
 
     @NotBlank(message = ResponseMessages.MEMBER_PASSWORD_REQUIRED)
-    @Size(max = 255, min = 6, message = ResponseMessages.MEMBER_PASSWORD_SIZE) //密碼最大為6~12個字
+    // 調整：新密碼統一 15～72 字元；UTF-8 的 72 bytes 限制由 Service 檢查。
+    @Size(min = 15, max = 72, message = ResponseMessages.MEMBER_PASSWORD_SIZE)
     private String password;
 
     @NotBlank(message = ResponseMessages.MEMBER_CONFIRM_PASSWORD_REQUIRED)
@@ -28,6 +29,7 @@ public class MemberRegisterRequest {
     //@Email email 必須符合 Email 格式
     @Email(message = ResponseMessages.MEMBER_EMAIL_INVALID)
     @NotBlank (message = ResponseMessages.MAIL_ADDRESS_REQUIRED )
+    // 調整確認：Email 上限與資料庫 VARCHAR(254)、前端一致。
     @Size(max = 254, message = ResponseMessages.MEMBER_EMAIL_MAX)
     private String email;
 

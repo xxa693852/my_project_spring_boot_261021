@@ -31,7 +31,11 @@
         <jjwt.version>0.12.6</jjwt.version>
     </properties>
     <dependencies>
-
+        <!-- 寄送電子郵件 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <!-- JWT API：提供 Claims、Jwts、Keys -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

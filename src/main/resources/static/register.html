@@ -14,6 +14,8 @@
         [aria-invalid="true"] { border: 2px solid #a32020; }
         #message { min-height: 1.5em; }
     </style>
+    <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
+    <script src="/password-rules.js?v=20261110" defer></script>
     <script src="/auth.js?v=20261102-settings" defer></script>
     <script src="/register.js" defer></script>
 </head>
@@ -27,11 +29,12 @@
         <label for="account">帳號</label>
         <input id="account" name="account" autocomplete="username" maxlength="50" required aria-describedby="account-error">
         <p id="account-error" class="field-error"></p>
+        <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
         <label for="email">Email</label>
         <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="email-error">
         <p id="email-error" class="field-error"></p>
-        <label for="password">密碼（至少 6 字元）</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" maxlength="255" required aria-describedby="password-error">
+        <label for="password">密碼（15～72 字元，UTF-8 不超過 72 bytes）</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="72" required aria-describedby="password-error">
         <p id="password-error" class="field-error"></p>
         <label for="confirmPassword">確認密碼</label>
         <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required aria-describedby="confirmPassword-error">

@@ -17,7 +17,9 @@ import student.jia.my_project_spring_boot_261021.response.MemberResponse;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.response.TokenResponse;
 import jakarta.validation.Valid;
+import student.jia.my_project_spring_boot_261021.request.MemberForgotPasswordRequest;
 import student.jia.my_project_spring_boot_261021.request.MemberLoginRequest;
+import student.jia.my_project_spring_boot_261021.request.MemberPasswordResetRequest;
 import student.jia.my_project_spring_boot_261021.request.MemberPasswordUpdateRequest;
 import student.jia.my_project_spring_boot_261021.request.MemberRegisterRequest;
 import student.jia.my_project_spring_boot_261021.request.MemberUpdateRequest;
@@ -104,6 +106,19 @@ public class MemberController {
         memberService.disableMember(id);
         return new ApiResponse("會員帳號停用成功");
     }
-    
+    //忘記密碼
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse forgotPassword(@Valid @RequestBody MemberForgotPasswordRequest request){
+        memberService.forgotPassword(request);
+        return new ApiResponse("若帳號存在，將寄送重設密碼信");
+    }
+    //重設密碼
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse resetPassword(@Valid @RequestBody MemberPasswordResetRequest request){
+        memberService.resetPassword(request);
+        return new ApiResponse("密碼重設成功，請重新登入");
+    }
 
 }
