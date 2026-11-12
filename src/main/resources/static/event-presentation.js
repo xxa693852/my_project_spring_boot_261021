@@ -9,6 +9,18 @@ function eventCoverUrl(theme) {
     return eventCovers.get(theme) || eventCovers.get("tavern");
 }
 
+function createEventMapLink(location, text) {
+    if (!location?.trim()) return null;
+    const url = new URL("https://www.google.com/maps/search/");
+    url.search = new URLSearchParams({ api: "1", query: location.trim() });
+    const link = document.createElement("a");
+    link.href = url.href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = text;
+    return link;
+}
+
 function renderEventTags(container, event, leadingLabel) {
     const audience = event.beginnerFriendly ? "新手友善" : "適合有經驗的玩家";
     const tags = new Set();

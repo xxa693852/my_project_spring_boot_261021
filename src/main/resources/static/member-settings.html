@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
     <title>D&amp;D 會員設定</title>
     <link rel="stylesheet" href="/site.css">
     <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
     <script src="/password-rules.js?v=20261110" defer></script>
     <script src="/auth.js?v=20261112" defer></script>
     <script src="/member-settings.js" defer></script>
+    <script src="/line-notifications.js?v=20261113" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -55,8 +57,14 @@
                 </fieldset>
                 <p id="password-message" role="status" aria-live="polite"></p>
             </form>
+            <form id="line-notification-form">
+                <h2>活動取消通知</h2>
+                <p id="line-preference" role="status">讀取通知設定中……</p>
+                <button id="line-link" type="button" hidden>綁定 LINE 通知</button>
+                <button id="line-unlink" type="button" hidden>改用 Email</button>
+                <p id="line-message" role="status"></p>
+            </form>
         </div>
-    </body>
-    </html>    </main>
+    </main>
 </body>
 </html>

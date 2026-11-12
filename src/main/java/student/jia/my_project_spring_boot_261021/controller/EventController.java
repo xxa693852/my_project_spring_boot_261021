@@ -22,6 +22,7 @@ import student.jia.my_project_spring_boot_261021.request.CreateEventRequest;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 import student.jia.my_project_spring_boot_261021.response.EventPageResponse;
 import student.jia.my_project_spring_boot_261021.response.EventResponse;
+import student.jia.my_project_spring_boot_261021.service.CancellationNotificationQueue.Delivery;
 import student.jia.my_project_spring_boot_261021.service.EventService;
 
 import org.springframework.web.bind.annotation.PutMapping;
@@ -135,6 +136,13 @@ public class EventController {
 
         // Service 正常完成才回傳 HTTP 200；發生例外則交給全域例外處理器。
         return new ApiResponse("活動已取消");
+    }
+
+    @GetMapping("/{eventId}/notifications")
+    public List<Delivery> cancellationNotifications(
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
+            @PathVariable("eventId") Long eventId) {
+        return eventService.findCancellationNotifications(memberId, eventId);
     }
 
     @RestController

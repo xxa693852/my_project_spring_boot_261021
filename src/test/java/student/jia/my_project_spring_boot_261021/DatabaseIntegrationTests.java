@@ -47,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // 使用真實 Spring 元件與 MySQL；每個測試結束後，Spring 會回滾測試交易。
 // MockMvc 經過實際 Controller、Interceptor 與 ExceptionHandler，但不開放網路服務埠。
-@SpringBootTest(properties = "spring.jpa.show-sql=false")
+@SpringBootTest(properties = {"spring.jpa.show-sql=false", "app.cancellation-notifications.enabled=true"})
 @Transactional
 class DatabaseIntegrationTests {
     private static final String PASSWORD = "TestPassword123!";
@@ -84,6 +84,35 @@ class DatabaseIntegrationTests {
         String database = (String) entityManager.createNativeQuery("SELECT DATABASE()").getSingleResult();
         assertEquals("dnd_event_prod_test", database);
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
+    }
+
+    @Test
+    void cancellingAnEventQueuesOnlyCurrentRegistrations() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        String authorization = bearer(login(admin));
+        Member attending = createMember();
+        Member previouslyCancelled = createMember();
+        Event event = createEvent(admin.getId(), 3);
+        registrationService.register(attending.getId(), event.getId());
+        registrationService.register(previouslyCancelled.getId(), event.getId());
+        registrationService.cancel(previouslyCancelled.getId(), event.getId());
+        reloadFromDatabase();
+
+        mvc.perform(delete("/admin/events/" + event.getId()).header("Authorization", authorization))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        assertEquals("CANCELLED", events.findById(event.getId()).orElseThrow().getStatus());
+        assertEquals(0L, registrations.countByEventIdAndStatus(event.getId(), "REGISTERED"));
+        mvc.perform(delete("/admin/events/" + event.getId()).header("Authorization", authorization))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/admin/events/" + event.getId() + "/notifications")
+                .header("Authorization", authorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].memberId").value(attending.getId().intValue()))
+                .andExpect(jsonPath("$[0].status").value("PENDING"));
     }
 
     @Test

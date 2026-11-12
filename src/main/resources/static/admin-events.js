@@ -14,6 +14,9 @@ const previousPage = document.getElementById("previous-page");
 const nextPage = document.getElementById("next-page");
 const pageStatus = document.getElementById("page-status");
 const coverPreview = document.getElementById("event-cover-preview");
+const deliveryLog = document.getElementById("delivery-log");
+const deliveryMessage = document.getElementById("delivery-message");
+const deliveryList = document.getElementById("delivery-list");
 const keys = ["title", "description", "hostName", "location", "startAt", "endAt", "registrationDeadline", "capacity", "beginnerFriendly", "coverTheme", "tags"];
 const dateKeys = ["startAt", "endAt", "registrationDeadline"];
 const taipeiDate = new Intl.DateTimeFormat("sv-SE", {
@@ -208,10 +211,48 @@ async function loadList(page = currentPage) {
     pagination.hidden = totalPages === 0;
     pageStatus.textContent = "第 " + currentPage + " / " + totalPages + " 頁，共 " + result.totalEvents + " 筆";
 }
+async function loadDeliveryLog(id) {
+    deliveryList.replaceChildren();
+    deliveryMessage.textContent = "讀取通知紀錄中……";
+    try {
+        const records = await checked("/admin/events/" + id + "/notifications");
+        const statuses = {
+            PENDING: "待發送", SENDING: "處理中", SENT: "服務已接受",
+            FAILED: "發送失敗", SKIPPED: "未發送", UNKNOWN: "結果待確認"
+        };
+        const reasons = {
+            LINE_NOT_CONFIGURED: "LINE 未設定，已改用 Email",
+            LINE_RECIPIENT_UNAVAILABLE: "LINE 收件人無法確認，已改用 Email",
+            LINE_REJECTED: "LINE 拒絕推播，已改用 Email",
+            LINE_DELIVERY_UNCONFIRMED: "LINE 推播結果不明",
+            EMAIL_UNAVAILABLE: "沒有可用的 Email",
+            EMAIL_SEND_ERROR: "Email 寄送服務回報錯誤",
+            MEMBER_UNAVAILABLE: "會員目前不可用",
+            DELIVERY_NEEDS_REVIEW: "請檢查寄送紀錄"
+        };
+        for (const record of records) {
+            const channel = record.channel === "EMAIL" ? "Email" : record.channel;
+            const details = ["會員 #" + record.memberId, statuses[record.status] || record.status];
+            if (channel) details.push(channel);
+            if (reasons[record.resultCode]) details.push(reasons[record.resultCode]);
+            text(deliveryList, "li", details.join(" · "));
+        }
+        deliveryMessage.textContent = records.length ? "" : "這場活動沒有通知紀錄。";
+    } catch (error) {
+        deliveryMessage.textContent = error.message;
+    }
+}
+document.getElementById("reload-delivery").addEventListener("click", async () => {
+    if (busy || editingId === null) return;
+    setBusy(true);
+    try { await loadDeliveryLog(editingId); }
+    finally { setBusy(false); }
+});
 function openForm(event, opener) {
     clearErrors();
     form.reset();
     editingId = event?.id ?? null;
+    deliveryLog.hidden = event?.status !== "CANCELLED";
     for (const picker of datePickers.values()) picker.setMode(editingId === null);
     updateDateMinimums();
     editable = !event || canEdit(event);
@@ -237,7 +278,11 @@ function openForm(event, opener) {
 async function loadForm(id, opener) {
     if (busy) return;
     setBusy(true);
-    try { openForm(await checked("/admin/events/" + id), opener); }
+    try {
+        const event = await checked("/admin/events/" + id);
+        openForm(event, opener);
+        if (event.status === "CANCELLED") await loadDeliveryLog(id);
+    }
     catch (error) { message.textContent = error.message; }
     finally { setBusy(false); }
 }

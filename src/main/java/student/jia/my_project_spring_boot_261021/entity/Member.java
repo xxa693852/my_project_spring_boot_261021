@@ -36,6 +36,9 @@ public class Member {
     @Column(nullable = false, length = 254, unique = true)
     private String email;
 
+    @Column(name = "notification_line_user_id", length = 33)
+    private String notificationLineUserId;
+
     @Column(nullable = false, length = 20)
     private String role = "MEMBER"; // 會員角色：MEMBER、ADMIN
 

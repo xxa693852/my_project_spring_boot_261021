@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/site.css?v=20261112-event-presentation">
     <script src="/auth.js?v=20261112" defer></script>
     <script src="/event-presentation.js" defer></script>
-    <script src="/admin-events.js?v=20261112-event-presentation" defer></script>
+    <script src="/admin-events.js?v=20261113-notifications" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -71,6 +71,12 @@
                     <button id="save-event" type="submit">儲存活動</button>
                     <button id="close-form" type="button">關閉表單</button>
                     <p id="form-message" role="status" aria-live="polite"></p>
+                    <section id="delivery-log" aria-labelledby="delivery-heading" hidden>
+                        <h3 id="delivery-heading">取消通知紀錄</h3>
+                        <p id="delivery-message" role="status"></p>
+                        <ul id="delivery-list"></ul>
+                        <button id="reload-delivery" type="button">重新讀取通知紀錄</button>
+                    </section>
                 </form>
             </dialog>
             <h2>全部活動</h2>

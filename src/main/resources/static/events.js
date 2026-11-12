@@ -22,7 +22,16 @@ function createEventCard(event) {
     body.className = "event-card-body";
     addText(body, "h2", event.title);
     addText(body, "p", event.startAt ? event.startAt.replace("T", " ") : "時間未設定", "event-meta");
-    addText(body, "p", event.location, "event-meta");
+    const locationLink = createEventMapLink(event.location, event.location);
+    if (locationLink) {
+        locationLink.setAttribute("aria-label", event.location + "，在 Google 地圖查看（另開分頁）");
+        const locationLine = document.createElement("p");
+        locationLine.className = "event-meta";
+        locationLine.append(locationLink);
+        body.append(locationLine);
+    } else {
+        addText(body, "p", "地點未提供", "event-meta");
+    }
     addText(body, "p", "主持人：" + event.hostName, "event-meta");
     addText(body, "p", "剩餘名額 " + event.remainingSlots + " / " + event.capacity, "event-count");
 

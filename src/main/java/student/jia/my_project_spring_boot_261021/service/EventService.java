@@ -34,15 +34,18 @@ public class EventService {
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
     private final RegistrationRepository registrationRepository;
+    private final CancellationNotificationQueue notificationQueue;
 
     public EventService(
             EventRepository eventRepository,
             MemberRepository memberRepository,
-            RegistrationRepository registrationRepository) {
+            RegistrationRepository registrationRepository,
+            CancellationNotificationQueue notificationQueue) {
 
         this.eventRepository = eventRepository;
         this.memberRepository = memberRepository;
         this.registrationRepository = registrationRepository;
+        this.notificationQueue = notificationQueue;
     }
 
     //管理員新增活動
@@ -143,6 +146,12 @@ public class EventService {
             }
             return new EventPageResponse(responses, page, eventPage.getTotalPages(), eventPage.getTotalElements());
         }
+
+    @Transactional(readOnly = true)
+    public List<CancellationNotificationQueue.Delivery> findCancellationNotifications(Long memberId, Long eventId) {
+        findById(memberId, eventId);
+        return notificationQueue.findByEvent(eventId);
+    }
 
         // 管理員查詢單一活動詳情
         @Transactional(readOnly = true)
@@ -332,6 +341,7 @@ public class EventService {
         for (Registration registration : registrations) {
             registration.setStatus("CANCELLED");
             registration.setCancelledAt(now);
+            notificationQueue.enqueue(targetEvent, registration.getMemberId());
         }
 
         // 7. 取消活動本身，避免活動維持 OPEN 而繼續接受報名。

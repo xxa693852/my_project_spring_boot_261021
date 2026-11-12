@@ -32,14 +32,8 @@ function showEvent(event) {
     facts.replaceChildren();
     addFact("主持人", event.hostName);
     const locationFact = addFact("地點", event.location || "未提供");
-    if (event.location?.trim()) {
-        const mapsUrl = new URL("https://www.google.com/maps/search/");
-        mapsUrl.search = new URLSearchParams({ api: "1", query: event.location.trim() });
-        const mapsLink = document.createElement("a");
-        mapsLink.href = mapsUrl.href;
-        mapsLink.target = "_blank";
-        mapsLink.rel = "noopener noreferrer";
-        mapsLink.textContent = "在 Google 地圖查看（另開分頁）";
+    const mapsLink = createEventMapLink(event.location, "在 Google 地圖查看（另開分頁）");
+    if (mapsLink) {
         locationFact.append(document.createElement("br"), mapsLink);
     }
     addFact("開始時間", time(event.startAt));
