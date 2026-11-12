@@ -1,10 +1,12 @@
 package student.jia.my_project_spring_boot_261021.request;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,4 +45,12 @@ public class UpdateEventRequest {
 
     @NotNull(message = "請指定是否新手友善")
     private Boolean beginnerFriendly;
+
+    @Pattern(regexp = "tavern|forest|dungeon|castle", message = "請選擇有效的預設封面")
+    private String coverTheme;
+
+    @Size(max = 5, message = "最多可填寫 5 個自訂標籤")
+    private List<@NotBlank(message = "自訂標籤不能空白")
+            @Size(max = 16, message = "每個自訂標籤最多 16 字")
+            @Pattern(regexp = "[^\\r\\n]+", message = "自訂標籤不能包含換行") String> tags;
 }

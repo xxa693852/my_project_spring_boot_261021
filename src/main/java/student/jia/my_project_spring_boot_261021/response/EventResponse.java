@@ -1,6 +1,7 @@
 package student.jia.my_project_spring_boot_261021.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.Getter;
 import student.jia.my_project_spring_boot_261021.entity.Event;
@@ -18,6 +19,8 @@ public class EventResponse {
     private LocalDateTime registrationDeadline;
     private int capacity;
     private boolean beginnerFriendly;
+    private String coverTheme;
+    private List<String> tags;
     private String status;
 
     // 新增：查詢時計算的資訊
@@ -36,6 +39,12 @@ public class EventResponse {
         this.registrationDeadline = event.getRegistrationDeadline();
         this.capacity = event.getCapacity();
         this.beginnerFriendly = event.isBeginnerFriendly();
+        this.coverTheme = event.getCoverTheme();
+        if (event.getCustomTags().isEmpty()) {
+            this.tags = List.of();
+        } else {
+            this.tags = List.of(event.getCustomTags().split("\n"));
+        }
         this.status = event.getStatus();
 
         // 有效報名人數

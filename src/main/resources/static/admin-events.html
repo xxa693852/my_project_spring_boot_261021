@@ -4,68 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 活動管理</title>
-    <style>
-        body { max-width: 900px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
-        nav { margin: 16px 0; }
-        #event-form { scroll-margin-top: 16px; }
-        article, form { border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
-        label { display: block; margin: 16px 0 6px; }
-        input:not([type="checkbox"]), textarea { box-sizing: border-box; width: 100%; padding: 10px; font: inherit; }
-        textarea { min-height: 100px; }
-        button { padding: 8px 16px; margin: 4px; font: inherit; cursor: pointer; }
-        fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-        .field-error { color: #a32020; margin: 4px 0; }
-        [aria-invalid="true"] { border: 2px solid #a32020; }
-    </style>
-    <script src="/auth.js?v=20261102-settings" defer></script>
-    <script src="/admin-events.js?v=20261102-scroll" defer></script>
+    <link rel="stylesheet" href="/site.css?v=20261112-event-presentation">
+    <script src="/auth.js?v=20261112" defer></script>
+    <script src="/event-presentation.js" defer></script>
+    <script src="/admin-events.js?v=20261112-event-presentation" defer></script>
 </head>
 <body>
-    <a href="/events.html">← 返回活動列表</a>
-    <nav id="member-nav" aria-label="會員"></nav>
-    <h1>管理員活動管理</h1>
-    <p id="message" role="status" aria-live="polite">確認權限中……</p>
-    <button id="retry" type="button" hidden>重新載入</button>
-    <div id="management" hidden>
-        <button id="new-event" type="button">新增活動</button>
-        <p>所有活動日期與時間均以台北時間（Asia/Taipei，UTC+08:00）輸入及顯示。</p>
-        <form id="event-form" hidden>
-            <h2 id="form-title" tabindex="-1">新增活動</h2>
-            <p id="form-info"></p>
-            <fieldset id="event-fields">
-                <label for="title">活動名稱</label>
-                <input id="title" name="title" maxlength="100" required aria-describedby="title-error">
-                <p class="field-error" id="title-error"></p>
-                <label for="description">活動介紹</label>
-                <textarea id="description" name="description" required aria-describedby="description-error"></textarea>
-                <p class="field-error" id="description-error"></p>
-                <label for="hostName">主持人</label>
-                <input id="hostName" name="hostName" maxlength="50" required aria-describedby="hostName-error">
-                <p class="field-error" id="hostName-error"></p>
-                <label for="location">地點</label>
-                <input id="location" name="location" maxlength="255" required aria-describedby="location-error">
-                <p class="field-error" id="location-error"></p>
-                <label for="startAt">開始時間（台北時間）</label>
-                <input id="startAt" name="startAt" type="datetime-local" step="1" required aria-describedby="startAt-error">
-                <p class="field-error" id="startAt-error"></p>
-                <label for="endAt">結束時間（台北時間）</label>
-                <input id="endAt" name="endAt" type="datetime-local" step="1" required aria-describedby="endAt-error">
-                <p class="field-error" id="endAt-error"></p>
-                <label for="registrationDeadline">報名截止（台北時間）</label>
-                <input id="registrationDeadline" name="registrationDeadline" type="datetime-local" step="1" required aria-describedby="registrationDeadline-error">
-                <p class="field-error" id="registrationDeadline-error"></p>
-                <label for="capacity">名額上限</label>
-                <input id="capacity" name="capacity" type="number" min="1" step="1" required aria-describedby="capacity-error">
-                <p class="field-error" id="capacity-error"></p>
-                <label><input id="beginnerFriendly" name="beginnerFriendly" type="checkbox">新手友善</label>
-                <p class="field-error" id="beginnerFriendly-error"></p>
-            </fieldset>
-            <button id="save-event" type="submit">儲存活動</button>
-            <button id="close-form" type="button">關閉表單</button>
-            <p id="form-message" role="status" aria-live="polite"></p>
-        </form>
-        <h2>全部活動</h2>
-        <div id="event-list"></div>
-    </div>
+    <header class="site-header">
+        <div class="site-bar">
+            <a class="site-brand" href="/events.html">D&amp;D 活動報名</a>
+            <nav id="member-nav" aria-label="會員"></nav>
+        </div>
+    </header>
+    <main class="page">
+        <h1>管理員活動管理</h1>
+        <p id="message" role="status" aria-live="polite">確認權限中……</p>
+        <button id="retry" type="button" hidden>重新載入</button>
+        <div id="management" hidden>
+            <button id="new-event" type="button">新增活動</button>
+            <p>所有活動日期與時間均以台北時間（Asia/Taipei，UTC+08:00）輸入及顯示。</p>
+            <dialog id="event-dialog" aria-labelledby="form-title">
+                <form id="event-form">
+                    <h2 id="form-title" tabindex="-1">新增活動</h2>
+                    <p id="form-info"></p>
+                    <fieldset id="event-fields">
+                        <label for="title">活動名稱</label>
+                        <input id="title" name="title" maxlength="100" required aria-describedby="title-error">
+                        <p class="field-error" id="title-error"></p>
+                        <label for="description">活動介紹</label>
+                        <textarea id="description" name="description" required aria-describedby="description-error"></textarea>
+                        <p class="field-error" id="description-error"></p>
+                        <label for="hostName">主持人</label>
+                        <input id="hostName" name="hostName" maxlength="50" required aria-describedby="hostName-error">
+                        <p class="field-error" id="hostName-error"></p>
+                        <label for="location">地點</label>
+                        <input id="location" name="location" maxlength="255" required aria-describedby="location-error">
+                        <p class="field-error" id="location-error"></p>
+                        <label for="startAt">開始時間（台北時間）</label>
+                        <input id="startAt" name="startAt" type="datetime-local" step="1" required aria-describedby="startAt-error">
+                        <p class="field-error" id="startAt-error"></p>
+                        <label for="endAt">結束時間（台北時間）</label>
+                        <input id="endAt" name="endAt" type="datetime-local" step="1" required aria-describedby="endAt-error">
+                        <p class="field-error" id="endAt-error"></p>
+                        <label for="registrationDeadline">報名截止（台北時間）</label>
+                        <input id="registrationDeadline" name="registrationDeadline" type="datetime-local" step="1" required aria-describedby="registrationDeadline-error">
+                        <p class="field-error" id="registrationDeadline-error"></p>
+                        <label for="capacity">名額上限</label>
+                        <input id="capacity" name="capacity" type="number" min="1" step="1" required aria-describedby="capacity-error">
+                        <p class="field-error" id="capacity-error"></p>
+                        <label><input id="beginnerFriendly" name="beginnerFriendly" type="checkbox">新手友善</label>
+                        <p class="field-error" id="beginnerFriendly-error"></p>
+                        <label for="coverTheme">活動封面</label>
+                        <select id="coverTheme" name="coverTheme" aria-describedby="coverTheme-error">
+                            <option value="tavern">酒館</option>
+                            <option value="forest">森林</option>
+                            <option value="dungeon">地城</option>
+                            <option value="castle">山谷古堡</option>
+                        </select>
+                        <p class="field-error" id="coverTheme-error"></p>
+                        <img id="event-cover-preview" alt="活動封面預覽">
+                        <label for="tags">自訂標籤</label>
+                        <p id="tags-help" class="field-help">每行一個，最多 5 個，每個最多 16 字。</p>
+                        <textarea id="tags" name="tags" rows="3" aria-describedby="tags-help tags-error" placeholder="劇情向&#10;提供預製角色"></textarea>
+                        <p class="field-error" id="tags-error"></p>
+                    </fieldset>
+                    <button id="save-event" type="submit">儲存活動</button>
+                    <button id="close-form" type="button">關閉表單</button>
+                    <p id="form-message" role="status" aria-live="polite"></p>
+                </form>
+            </dialog>
+            <h2>全部活動</h2>
+            <div id="event-list"></div>
+            <nav id="event-pagination" aria-label="活動列表分頁" hidden>
+                <button id="previous-page" type="button">上一頁</button>
+                <span id="page-status" role="status"></span>
+                <button id="next-page" type="button">下一頁</button>
+            </nav>
+        </div>
+    </main>
 </body>
 </html>

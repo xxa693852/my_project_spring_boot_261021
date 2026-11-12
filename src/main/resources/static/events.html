@@ -5,102 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&D 活動列表</title>
 
-    <style>
-        body {
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 20px;
-            font-family: sans-serif;
-        }
-
-        .event-card {
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-    </style>
-    <script src="/auth.js?v=20261102-settings" defer></script>
+    <link rel="stylesheet" href="/site.css?v=20261112-event-presentation">
+    <script src="/auth.js?v=20261112" defer></script>
+    <script src="/event-presentation.js" defer></script>
+    <script src="/events.js?v=20261112-event-presentation" defer></script>
 </head>
 <body>
-    <nav id="member-nav" aria-label="會員"></nav>
-    <h1>D&D 活動列表</h1>
-    <p id="message">活動載入中……</p>
-    <div id="event-list"></div>
+    <header class="site-header">
+        <div class="site-bar">
+            <a class="site-brand" href="/events.html">D&amp;D 活動報名</a>
+            <nav id="member-nav" aria-label="會員"></nav>
+        </div>
+    </header>
+    <main class="page">
+        <h1>D&amp;D 活動列表</h1>
+        <p id="message" role="status">活動載入中……</p>
+        <div id="event-list"></div>
 
-    <script>
-        // 找到頁面中要放資料的位置
-        const message = document.getElementById("message");
-        const eventList = document.getElementById("event-list");
-
-        // 建立一段文字，並放入活動卡片
-        function addText(card, tag, text) {
-            const element = document.createElement(tag);
-            element.textContent = text;
-            card.appendChild(element);
-        }
-           // 定義這個方法要做的事情
-        async function loadEvents() {
-            try {
-                // 呼叫與這個網頁相同主機的 GET /events
-                const response = await fetch("/events");
-
-                // HTTP 狀態碼不是成功時，進入 catch
-                if (!response.ok) {
-                    throw new Error(`讀取失敗：HTTP ${response.status}`);
-                }
-
-                // 把 JSON 回應轉成 JavaScript 資料
-                const events = await response.json();
-
-                if (!Array.isArray(events)) {
-                    throw new Error("API 回應不是活動陣列，請確認回傳格式");
-                }
-
-                eventList.replaceChildren();
-                message.textContent =
-                    events.length === 0 ? "目前沒有開放的活動。" : "";
-
-                // 將每筆活動建立成一張卡片
-                for (const event of events) {
-                    const card = document.createElement("article");
-                    card.className = "event-card";
-
-                    addText(card, "h2", event.title);
-                    addText(card, "p", `主持人：${event.hostName}`);
-                    addText(card, "p", `地點：${event.location}`);
-                    addText(
-                        card,
-                        "p",
-                        `開始時間：${event.startAt.replace("T", " ")}`
-                    );
-                    addText(card, "p", `名額上限：${event.capacity} 人`);
-                    addText(card, "p", `已報名：${event.registeredCount} 人`);
-                    addText(card, "p", `剩餘名額：${event.remainingSlots} / ${event.capacity}`);
-                    addText(
-                        card,
-                        "p",
-                        event.canRegister ? "目前可報名" : "目前不可報名"
-                    );
-                    addText(
-                        card,
-                        "p",
-                        event.beginnerFriendly ? "新手友善" : "適合有經驗的玩家"
-                    );
-                const detailLink = document.createElement("a");
-                detailLink.textContent = "查看詳情";
-                detailLink.href = `/event-detail.html?id=${event.id}`;
-                card.appendChild(detailLink);
-                    eventList.appendChild(card);
-                }
-            } catch (error) {
-                message.textContent = "無法載入活動，請稍後再試。";
-                console.error(error);
-            }
-        }
-
-        // 開啟頁面時執行
-        loadEvents(); // 實際叫它開始執行
-    </script>
+    </main>
 </body>
 </html>

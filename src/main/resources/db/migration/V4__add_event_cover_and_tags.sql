@@ -1,0 +1,3 @@
+ALTER TABLE events
+    ADD COLUMN cover_theme VARCHAR(16) NOT NULL DEFAULT 'tavern',
+    ADD COLUMN custom_tags VARCHAR(84) NOT NULL DEFAULT '';

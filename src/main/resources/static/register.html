@@ -4,46 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 會員註冊</title>
-    <style>
-        body { max-width: 480px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
-        form { border: 1px solid #ccc; border-radius: 8px; padding: 24px; }
-        label { display: block; margin: 16px 0 6px; }
-        input { box-sizing: border-box; width: 100%; padding: 10px; font: inherit; }
-        button { margin-top: 20px; padding: 10px 24px; font: inherit; cursor: pointer; }
-        .field-error { color: #a32020; margin: 4px 0; }
-        [aria-invalid="true"] { border: 2px solid #a32020; }
-        #message { min-height: 1.5em; }
-    </style>
+    <link rel="stylesheet" href="/site.css">
     <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
     <script src="/password-rules.js?v=20261110" defer></script>
-    <script src="/auth.js?v=20261102-settings" defer></script>
+    <script src="/auth.js?v=20261112" defer></script>
     <script src="/register.js" defer></script>
 </head>
 <body>
-    <a id="login-link" href="/login.html">← 返回登入</a>
-    <h1>會員註冊</h1>
-    <form id="register-form" novalidate>
-        <label for="name">姓名</label>
-        <input id="name" name="name" autocomplete="name" maxlength="50" required aria-describedby="name-error">
-        <p id="name-error" class="field-error"></p>
-        <label for="account">帳號</label>
-        <input id="account" name="account" autocomplete="username" maxlength="50" required aria-describedby="account-error">
-        <p id="account-error" class="field-error"></p>
-        <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="email-error">
-        <p id="email-error" class="field-error"></p>
-        <label for="password">密碼（15～72 字元，UTF-8 不超過 72 bytes）</label>
-        <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="72" required aria-describedby="password-error">
-        <p id="password-error" class="field-error"></p>
-        <label for="confirmPassword">確認密碼</label>
-        <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required aria-describedby="confirmPassword-error">
-        <p id="confirmPassword-error" class="field-error"></p>
-        <button id="submit" type="submit">註冊</button>
-        <p id="message" role="status" aria-live="polite"></p>
-    </form>
-    <p id="success" role="status" hidden>註冊成功，請登入後繼續原本的操作。
-        <a id="continue-login" href="/login.html">前往登入</a>
-    </p>
+    <header class="site-header">
+        <div class="site-bar">
+            <a class="site-brand" href="/events.html">D&amp;D 活動報名</a>
+        </div>
+    </header>
+    <main class="page page-narrow">
+        <a id="login-link" href="/login.html">← 返回登入</a>
+        <h1>會員註冊</h1>
+        <form id="register-form" novalidate>
+            <label for="name">姓名</label>
+            <input id="name" name="name" autocomplete="name" maxlength="50" required aria-describedby="name-error">
+            <p id="name-error" class="field-error"></p>
+            <label for="account">帳號</label>
+            <input id="account" name="account" autocomplete="username" maxlength="50" required aria-describedby="account-error">
+            <p id="account-error" class="field-error"></p>
+            <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="email-error">
+            <p id="email-error" class="field-error"></p>
+            <label for="password">密碼（15～72 字元，UTF-8 不超過 72 bytes）</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="72" required aria-describedby="password-error">
+            <p id="password-error" class="field-error"></p>
+            <label for="confirmPassword">確認密碼</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required aria-describedby="confirmPassword-error">
+            <p id="confirmPassword-error" class="field-error"></p>
+            <button id="submit" type="submit">註冊</button>
+            <p id="message" role="status" aria-live="polite"></p>
+        </form>
+        <p id="success" role="status" hidden>註冊成功，請登入後繼續原本的操作。
+            <a id="continue-login" href="/login.html">前往登入</a>
+        </p>
+    </body>
+    </html>    </main>
 </body>
 </html>

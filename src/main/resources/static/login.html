@@ -4,32 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 會員登入</title>
-    <style>
-        body { max-width: 480px; margin: 40px auto; padding: 0 20px; font-family: sans-serif; }
-        form { border: 1px solid #ccc; border-radius: 8px; padding: 24px; }
-        label { display: block; margin: 16px 0 6px; }
-        input { box-sizing: border-box; width: 100%; padding: 10px; font: inherit; }
-        button { margin-top: 20px; padding: 10px 24px; font: inherit; cursor: pointer; }
-        #message { min-height: 1.5em; }
-    </style>
+    <link rel="stylesheet" href="/site.css">
     <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
     <script src="/password-rules.js?v=20261110" defer></script>
-    <script src="/auth.js?v=20261102-settings" defer></script>
-    <script src="/login.js?v=20261102-register" defer></script>
+    <script src="/auth.js?v=20261112" defer></script>
+    <script src="/login.js?v=20261112" defer></script>
 </head>
 <body>
-    <a href="/events.html">← 返回活動列表</a>
-    <h1>會員登入</h1>
-    <form id="login-form">
-        <label for="account">帳號</label>
-        <input id="account" name="account" autocomplete="username" required autofocus>
-        <label for="password">密碼</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
-        <button id="submit" type="submit">登入</button>
-        <p id="message" role="status" aria-live="polite"></p>
-    </form>
-    <!-- 忘記密碼：未登入也能申請重設連結。 -->
-    <p><a href="/forgot-password.html">忘記密碼？</a></p>
-    <p>還沒有帳號？<a id="register-link" href="/register.html">會員註冊</a></p>
+    <header class="site-header">
+        <div class="site-bar">
+            <a class="site-brand" href="/events.html">D&amp;D 活動報名</a>
+        </div>
+    </header>
+    <main class="page page-narrow">
+        <a class="back-link" href="/events.html">← 返回活動列表</a>
+        <h1>會員登入</h1>
+        <form id="login-form">
+            <label for="account">帳號</label>
+            <input id="account" name="account" autocomplete="username" required autofocus>
+            <label for="password">密碼</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <label class="checkbox-row">
+                <input name="remember" type="checkbox">
+                在這個瀏覽器保持登入
+            </label>
+            <button id="submit" type="submit">登入</button>
+            <p id="message" role="status" aria-live="polite"></p>
+        </form>
+        <!-- 忘記密碼：未登入也能申請重設連結。 -->
+        <p><a href="/forgot-password.html">忘記密碼？</a></p>
+        <p>還沒有帳號？<a id="register-link" href="/register.html">會員註冊</a></p>
+    </body>
+    </html>    </main>
 </body>
 </html>

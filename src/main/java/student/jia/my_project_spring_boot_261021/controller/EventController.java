@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,6 +20,7 @@ import jakarta.validation.Valid;
 import student.jia.my_project_spring_boot_261021.interceptor.AuthInterceptor;
 import student.jia.my_project_spring_boot_261021.request.CreateEventRequest;
 import student.jia.my_project_spring_boot_261021.response.ApiResponse;
+import student.jia.my_project_spring_boot_261021.response.EventPageResponse;
 import student.jia.my_project_spring_boot_261021.response.EventResponse;
 import student.jia.my_project_spring_boot_261021.service.EventService;
 
@@ -78,6 +80,13 @@ public class EventController {
 
         // 4. 回傳活動列表，Spring 會轉成 JSON 陣列
         return responses;
+    }
+
+    @GetMapping("/page")
+    public EventPageResponse findPage(
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
+            @RequestParam(name = "page", defaultValue = "1") int page) {
+        return eventService.findAdminPage(memberId, page);
     }
 
     // GET /admin/events/1

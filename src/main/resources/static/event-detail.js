@@ -1,5 +1,10 @@
 const message = document.getElementById("message");
-const detail = document.getElementById("event-detail");
+const panel = document.getElementById("event-panel");
+const title = document.getElementById("event-title");
+const cover = document.getElementById("event-cover");
+const labels = document.getElementById("event-labels");
+const facts = document.getElementById("event-facts");
+const description = document.getElementById("description");
 const section = document.getElementById("registration");
 const statusText = document.getElementById("registration-status");
 const actionMessage = document.getElementById("action-message");
@@ -8,13 +13,53 @@ const cancel = document.getElementById("cancel-button");
 const login = document.getElementById("login-link");
 const eventId = new URLSearchParams(location.search).get("id");
 let busy = false;
-function addText(tag, text, className) {
-    const element = document.createElement(tag);
-    element.textContent = text;
-    if (className) element.className = className;
-    detail.append(element);
+function addFact(label, value) {
+    const group = document.createElement("div");
+    const term = document.createElement("dt");
+    const definition = document.createElement("dd");
+    term.textContent = label;
+    definition.textContent = value;
+    group.append(term, definition);
+    facts.append(group);
+    return definition;
 }
+
+function showEvent(event) {
+    title.textContent = event.title;
+    cover.src = eventCoverUrl(event.coverTheme);
+    renderEventTags(labels, event);
+
+    facts.replaceChildren();
+    addFact("主持人", event.hostName);
+    const locationFact = addFact("地點", event.location || "未提供");
+    if (event.location?.trim()) {
+        const mapsUrl = new URL("https://www.google.com/maps/search/");
+        mapsUrl.search = new URLSearchParams({ api: "1", query: event.location.trim() });
+        const mapsLink = document.createElement("a");
+        mapsLink.href = mapsUrl.href;
+        mapsLink.target = "_blank";
+        mapsLink.rel = "noopener noreferrer";
+        mapsLink.textContent = "在 Google 地圖查看（另開分頁）";
+        locationFact.append(document.createElement("br"), mapsLink);
+    }
+    addFact("開始時間", time(event.startAt));
+    addFact("結束時間", time(event.endAt));
+    addFact("報名截止", time(event.registrationDeadline));
+    addFact("剩餘名額", event.remainingSlots + " / " + event.capacity);
+    addFact("已報名", event.registeredCount + " 人");
+    addFact("報名狀態", event.canRegister ? "目前可報名" : "目前不可報名");
+    description.textContent = event.description;
+    panel.hidden = false;
+}
+
 function time(value) { return value ? value.replace("T", " ") : "未設定"; }
+
+function showLogin(text) {
+    statusText.textContent = text;
+    login.href = DndAuth.loginUrl();
+    login.hidden = false;
+}
+
 async function loadEvent() {
     register.hidden = cancel.hidden = login.hidden = true;
     section.hidden = true;
@@ -24,40 +69,22 @@ async function loadEvent() {
     }
     try {
         const response = await fetch("/events/" + eventId);
-        if (!response.ok) detail.hidden = true;
+        if (!response.ok) panel.hidden = true;
         if (!response.ok) throw new Error(response.status === 404
             ? "找不到這個活動，活動可能已取消。" : "無法載入活動，請稍後再試。");
         const event = await response.json();
-        detail.replaceChildren();
-        addText("h1", event.title);
-        addText("p", "主持人：" + event.hostName);
-        addText("p", "地點：" + event.location);
-        addText("p", "開始時間：" + time(event.startAt));
-        addText("p", "結束時間：" + time(event.endAt));
-        addText("p", "報名截止：" + time(event.registrationDeadline));
-        addText("p", "名額上限：" + event.capacity + " 人");
-        addText("p", "已報名：" + event.registeredCount + " 人");
-        addText("p", "剩餘名額：" + event.remainingSlots + " / " + event.capacity);
-        addText("p", event.beginnerFriendly ? "新手友善" : "適合有經驗的玩家");
-        addText("p", event.canRegister ? "目前可報名" : "目前不可報名");
-        addText("h2", "活動介紹");
-        addText("p", event.description, "description");
-        detail.hidden = false;
+        showEvent(event);
         message.textContent = "";
         section.hidden = false;
         if (!DndAuth.session()) {
-            statusText.textContent = "登入後可查看自己的報名狀態。";
-            login.href = DndAuth.loginUrl();
-            login.hidden = false;
+            showLogin("登入後可查看自己的報名狀態。");
             return;
         }
         statusText.textContent = "報名狀態載入中……";
         const own = await DndAuth.request("/registration/events/" + eventId);
         if (own.status === 401) {
             DndAuth.renderNav(document.getElementById("member-nav"));
-            statusText.textContent = "登入已失效，請重新登入。";
-            login.href = DndAuth.loginUrl();
-            login.hidden = false;
+            showLogin("登入已失效，請重新登入。");
             return;
         }
         if (!own.ok && own.status !== 404) {
@@ -76,6 +103,10 @@ async function loadEvent() {
             register.hidden = !event.canRegister;
         }
     } catch (error) {
+        if (error.status === 401 && !section.hidden) {
+            showLogin("登入已失效，請重新登入。");
+            return;
+        }
         message.textContent = error.message || "無法載入活動，請稍後再試。";
     }
 }

@@ -1,9 +1,15 @@
 package student.jia.my_project_spring_boot_261021.service;
 
-import org.springframework.stereotype.Service;
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
@@ -17,10 +23,13 @@ import student.jia.my_project_spring_boot_261021.entity.Registration;
 import student.jia.my_project_spring_boot_261021.repository.RegistrationRepository;
 import student.jia.my_project_spring_boot_261021.request.UpdateEventRequest;
 import student.jia.my_project_spring_boot_261021.response.EventResponse;
+import student.jia.my_project_spring_boot_261021.response.EventPageResponse;
 
 import org.springframework.transaction.annotation.Isolation;
 @Service
 public class EventService {
+
+    private static final int ADMIN_PAGE_SIZE = 10;
 
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
@@ -93,6 +102,7 @@ public class EventService {
             operator.getId()
             );
 
+            updatePresentation(event, request.getCoverTheme(), request.getTags());
             return eventRepository.save(event);
         
 
@@ -111,6 +121,28 @@ public class EventService {
             return eventRepository.findAll();
         }
 
+
+        @Transactional(readOnly = true)
+        public EventPageResponse findAdminPage(Long memberId, int page) {
+            validateAdmin(memberId);
+            if (page < 1) {
+                throw new IllegalArgumentException("頁碼必須從 1 開始");
+            }
+
+            if ((page - 1L) * ADMIN_PAGE_SIZE > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("頁碼超出查詢範圍");
+            }
+
+            // 建立時間相同時，以唯一的活動 ID 決定先後。
+            PageRequest pageRequest =
+                    PageRequest.of(page - 1, ADMIN_PAGE_SIZE, Sort.Direction.DESC, "createdAt", "id");
+            Page<Event> eventPage = eventRepository.findAll(pageRequest);
+            List<EventResponse> responses = new ArrayList<>();
+            for (Event event : eventPage) {
+                responses.add(toEventResponse(event));
+            }
+            return new EventPageResponse(responses, page, eventPage.getTotalPages(), eventPage.getTotalElements());
+        }
 
         // 管理員查詢單一活動詳情
         @Transactional(readOnly = true)
@@ -239,9 +271,23 @@ public class EventService {
         targetEvent.setRegistrationDeadline(deadline);
         targetEvent.setCapacity(request.getCapacity());
         targetEvent.setBeginnerFriendly(request.getBeginnerFriendly());
+        updatePresentation(targetEvent, request.getCoverTheme(), request.getTags());
 
         
     }
+    private void updatePresentation(Event event, String coverTheme, List<String> tags) {
+        if (coverTheme != null) {
+            event.setCoverTheme(coverTheme);
+        }
+        if (tags != null) {
+            LinkedHashSet<String> uniqueTags = new LinkedHashSet<>();
+            for (String tag : tags) {
+                uniqueTags.add(tag.strip());
+            }
+            event.setCustomTags(String.join("\n", uniqueTags));
+        }
+    }
+
     // 取消活動
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public  void cancelEvent ( Long memberId,Long eventId) {

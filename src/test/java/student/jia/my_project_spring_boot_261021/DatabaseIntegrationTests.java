@@ -41,6 +41,7 @@ import student.jia.my_project_spring_boot_261021.service.MemberService;
 import student.jia.my_project_spring_boot_261021.service.RegistrationService;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -83,6 +84,123 @@ class DatabaseIntegrationTests {
         String database = (String) entityManager.createNativeQuery("SELECT DATABASE()").getSingleResult();
         assertEquals("dnd_event_prod_test", database);
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
+    }
+
+    @Test
+    void eventPresentationSurvivesLegacyUpdatesAndAppearsOnPublicPages() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        String authorization = bearer(login(admin));
+        Event legacyEvent = createEvent(admin.getId(), 2);
+        LocalDateTime now = LocalDateTime.now().withNano(0);
+        String body = """
+                {
+                    "title": "Presentation Integration Event",
+                    "description": "Description",
+                    "hostName": "Host",
+                    "location": "Taipei",
+                    "startAt": "%s",
+                    "endAt": "%s",
+                    "registrationDeadline": "%s",
+                    "capacity": 2,
+                    "beginnerFriendly": true%s
+                }
+                """.formatted(now.plusDays(2), now.plusDays(3), now.plusDays(1), "%s");
+
+        mvc.perform(get("/events/" + legacyEvent.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverTheme").value("tavern"))
+                .andExpect(jsonPath("$.tags.length()").value(0));
+
+        String presentation = """
+                , "coverTheme": "forest", "tags": [" 劇情向 ", "提供預製角色", "劇情向"]
+                """;
+        mvc.perform(post("/admin/events").header("Authorization", authorization)
+                .contentType(MediaType.APPLICATION_JSON).content(body.formatted(presentation)))
+                .andExpect(status().isCreated());
+        reloadFromDatabase();
+        Event created = events.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "id")).getFirst();
+        createdEventIds.add(created.getId());
+
+        mvc.perform(get("/events/" + created.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverTheme").value("forest"))
+                .andExpect(jsonPath("$.tags[0]").value("劇情向"))
+                .andExpect(jsonPath("$.tags[1]").value("提供預製角色"))
+                .andExpect(jsonPath("$.tags.length()").value(2))
+                .andExpect(jsonPath("$.beginnerFriendly").value(true));
+        mvc.perform(get("/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].coverTheme", hasItem("forest")))
+                .andExpect(jsonPath("$[*].tags[*]", hasItem("提供預製角色")));
+
+        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+                .contentType(MediaType.APPLICATION_JSON).content(body.formatted("")))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        mvc.perform(get("/admin/events/" + created.getId()).header("Authorization", authorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverTheme").value("forest"))
+                .andExpect(jsonPath("$.tags.length()").value(2));
+
+        String invalid = ", \"coverTheme\": \"unknown\", \"tags\": [\"12345678901234567\"]";
+        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+                .contentType(MediaType.APPLICATION_JSON).content(body.formatted(invalid)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.coverTheme").exists());
+        String tooMany = ", \"tags\": [\"1\",\"2\",\"3\",\"4\",\"5\",\"6\"]";
+        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+                .contentType(MediaType.APPLICATION_JSON).content(body.formatted(tooMany)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.tags").exists());
+
+        String clear = ", \"coverTheme\": \"castle\", \"tags\": []";
+        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+                .contentType(MediaType.APPLICATION_JSON).content(body.formatted(clear)))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        mvc.perform(get("/events/" + created.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverTheme").value("castle"))
+                .andExpect(jsonPath("$.tags.length()").value(0));
+    }
+
+    @Test
+    void adminActivityPagesHaveStableOrderAndPreserveLegacyList() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        TokenResponse adminLogin = login(admin);
+        TokenResponse memberLogin = login(createMember());
+        List<Long> ids = new ArrayList<>();
+        for (int index = 0; index < 12; index++) {
+            Event event = createEvent(admin.getId(), 2);
+            ids.add(event.getId());
+        }
+        reloadFromDatabase();
+
+        mvc.perform(get("/admin/events/page").header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.events.length()").value(10))
+                .andExpect(jsonPath("$.events[0].id").value(ids.get(11).intValue()))
+                .andExpect(jsonPath("$.events[9].id").value(ids.get(2).intValue()));
+        mvc.perform(get("/admin/events/page").param("page", "2")
+                .header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.events[0].id").value(ids.get(1).intValue()))
+                .andExpect(jsonPath("$.events[1].id").value(ids.get(0).intValue()));
+        mvc.perform(get("/admin/events/page").param("page", "0")
+                .header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/admin/events/page").header("Authorization", bearer(memberLogin)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/admin/events").header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 
     @Test

@@ -50,6 +50,12 @@ public class Event {
     @Column(name = "beginner_friendly", nullable = false)
     private boolean beginnerFriendly;
 
+    @Column(name = "cover_theme", nullable = false, length = 16)
+    private String coverTheme = "tavern";
+
+    @Column(name = "custom_tags", nullable = false, length = 84)
+    private String customTags = "";
+
     // OPEN：開放報名；CLOSED：已關閉；CANCELLED：已取消
     @Column(nullable = false, length = 20)
     private String status = "OPEN";
