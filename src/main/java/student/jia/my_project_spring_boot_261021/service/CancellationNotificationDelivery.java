@@ -60,51 +60,54 @@ public class CancellationNotificationDelivery {
         String text = "活動「" + pending.title() + "」已取消。原訂時間 "
                 + TIME.format(pending.startAt()) + "（台北時間）。請至「我的報名」查看。";
 
+        Result result = send(member, "D&D 活動取消通知", text);
+        queue.finish(pending.id(), result.status(), result.channel(), result.code());
+    }
+
+    Result send(Member member, String subject, String text) {
         String fallbackReason = null;
         if (member.getNotificationLineUserId() != null) {
-            fallbackReason = tryLine(pending.id(), member.getNotificationLineUserId(), text);
-            if (fallbackReason == null) {
-                return;
+            Result lineResult = tryLine(member.getNotificationLineUserId(), text);
+            if (!"FALLBACK".equals(lineResult.status())) {
+                return lineResult;
             }
+            fallbackReason = lineResult.code();
         }
 
         if (member.getEmail() == null || member.getEmail().isBlank()) {
-            queue.finish(pending.id(), "FAILED", null, "EMAIL_UNAVAILABLE");
-            return;
+            return new Result("FAILED", null, "EMAIL_UNAVAILABLE");
         }
         try {
-            mail.sendEmail(member.getEmail(), "D&D 活動取消通知", text);
+            mail.sendEmail(member.getEmail(), subject, text);
         } catch (org.springframework.mail.MailException failure) {
-            queue.finish(pending.id(), "FAILED", "EMAIL", "EMAIL_SEND_ERROR");
-            return;
+            return new Result("FAILED", "EMAIL", "EMAIL_SEND_ERROR");
         }
-        queue.finish(pending.id(), "SENT", "EMAIL", fallbackReason);
+        return new Result("SENT", "EMAIL", fallbackReason);
     }
 
-    // 回傳備援原因代表尚未送出 LINE，可安全改寄 Email。
-    private String tryLine(long id, String userId, String text) {
+    // 只有確認 LINE 未送出時才改寄 Email。
+    private Result tryLine(String userId, String text) {
         if (!line.isConfigured()) {
-            return "LINE_NOT_CONFIGURED";
+            return new Result("FALLBACK", "LINE", "LINE_NOT_CONFIGURED");
         }
         try {
             line.verifyRecipient(userId);
         } catch (RestClientException failure) {
-            return "LINE_RECIPIENT_UNAVAILABLE";
+            return new Result("FALLBACK", "LINE", "LINE_RECIPIENT_UNAVAILABLE");
         }
         try {
             line.push(userId, text);
         } catch (RestClientResponseException failure) {
             int status = failure.getStatusCode().value();
             if (status >= 400 && status < 500 && status != 408 && status != 409) {
-                return "LINE_REJECTED";
+                return new Result("FALLBACK", "LINE", "LINE_REJECTED");
             }
-            queue.finish(id, "UNKNOWN", "LINE", "LINE_DELIVERY_UNCONFIRMED");
-            return null;
+            return new Result("UNKNOWN", "LINE", "LINE_DELIVERY_UNCONFIRMED");
         } catch (RestClientException failure) {
-            queue.finish(id, "UNKNOWN", "LINE", "LINE_DELIVERY_UNCONFIRMED");
-            return null;
+            return new Result("UNKNOWN", "LINE", "LINE_DELIVERY_UNCONFIRMED");
         }
-        queue.finish(id, "SENT", "LINE", null);
-        return null;
+        return new Result("SENT", "LINE", null);
     }
+
+    record Result(String status, String channel, String code) {}
 }

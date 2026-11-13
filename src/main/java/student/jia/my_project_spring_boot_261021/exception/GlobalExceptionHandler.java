@@ -19,6 +19,14 @@ import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(RegistrationConflictException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public RegistrationConflictResponse handleRegistrationConflict(RegistrationConflictException exception) {
+        return new RegistrationConflictResponse(exception.getMessage(), exception.getConflicts());
+    }
+
+    public record RegistrationConflictResponse(String message, List<RegistrationConflictException.Conflict> conflicts) {}
+
     // Missing member or other resource.
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)

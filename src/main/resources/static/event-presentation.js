@@ -37,3 +37,23 @@ function renderEventTags(container, event, leadingLabel) {
         container.append(label);
     }
 }
+
+async function showRegistrationConflict(response, container) {
+    if (response.status !== 400) return false;
+    const data = await response.clone().json().catch(() => null);
+    if (!Array.isArray(data?.conflicts) || !data.conflicts.length) return false;
+
+    const list = document.createElement("ul");
+    for (const conflict of data.conflicts) {
+        const item = document.createElement("li");
+        const start = conflict.startAt.slice(0, 16).replace("T", " ");
+        const end = conflict.endAt.slice(0, 16).replace("T", " ");
+        item.textContent = conflict.title + "（" + start + " 至 " + end + "，台北時間）";
+        list.append(item);
+    }
+    const link = document.createElement("a");
+    link.href = "/my-registrations.html";
+    link.textContent = "查看我的報名";
+    container.replaceChildren(data.message, list, link);
+    return true;
+}

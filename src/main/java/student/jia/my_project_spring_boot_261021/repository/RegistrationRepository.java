@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
+import student.jia.my_project_spring_boot_261021.entity.Event;
 
 public interface RegistrationRepository
         extends JpaRepository<Registration, Long> {
@@ -17,12 +18,13 @@ public interface RegistrationRepository
             Long memberId, Long eventId);
 
     @Query("""
-            SELECT COUNT(r) FROM Registration r, Event e
+            SELECT e FROM Registration r, Event e
             WHERE r.eventId = e.id AND r.memberId = :memberId
               AND r.eventId <> :eventId AND r.status = 'REGISTERED' AND e.status = 'OPEN'
               AND e.startAt < :endAt AND e.endAt > :startAt
+            ORDER BY e.startAt, e.id
             """)
-    long countOverlappingRegistrations(
+    List<Event> findOverlappingEvents(
             @Param("memberId") Long memberId, @Param("eventId") Long eventId,
             @Param("startAt") LocalDateTime startAt, @Param("endAt") LocalDateTime endAt);
 

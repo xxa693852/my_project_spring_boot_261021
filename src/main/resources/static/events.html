@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&D 活動列表</title>
 
-    <link rel="stylesheet" href="/site.css?v=2.5">
+    <link rel="stylesheet" href="/site.css?v=centered-cancel">
     <script src="/auth.js?v=list-registration" defer></script>
     <script src="/line-notification-prompt.js?v=2.5.1" defer></script>
-    <script src="/event-presentation.js?v=20261112-map-link" defer></script>
-    <script src="/events.js?v=list-registration" defer></script>
+    <script src="/event-presentation.js?v=registration-conflict" defer></script>
+    <script src="/cancel-registration-dialog.js?v=centered-cancel" defer></script>
+    <script src="/events.js?v=registration-conflict" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -20,7 +21,7 @@
     </header>
     <main class="page">
         <h1>D&amp;D 活動列表</h1>
-        <p id="line-notification-prompt" class="notification-prompt" data-load-notification-status hidden><a href="/member-settings.html#line-notification-form">綁定 LINE 接收活動取消通知</a></p>
+        <p id="line-notification-prompt" class="notification-prompt" data-load-notification-status hidden><a href="/member-settings.html#line-notification-form">綁定 LINE 接收開團提醒與取消通知</a></p>
         <p id="message" role="status">活動載入中……</p>
         <div id="event-list"></div>
         <nav class="public-pagination" aria-label="活動列表分頁" hidden>

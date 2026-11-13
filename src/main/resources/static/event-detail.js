@@ -110,7 +110,7 @@ async function loadEvent() {
 }
 async function changeRegistration(method) {
     if (busy) return;
-    if (method === "DELETE" && !confirm("確定要取消這場活動的報名嗎？")) return;
+    if (method === "DELETE" && !await confirmRegistrationCancellation(title.textContent)) return;
     busy = true;
     register.disabled = cancel.disabled = true;
     actionMessage.textContent = "處理中……";
@@ -119,6 +119,7 @@ async function changeRegistration(method) {
             : "/registration/events/" + eventId;
         const response = await DndAuth.request(path, { method });
         if (!response.ok) {
+            if (method === "POST" && await showRegistrationConflict(response, actionMessage)) return;
             throw new Error(await DndAuth.errorMessage(response,
                 response.status === 401 ? "登入已失效，請重新登入。" : "操作失敗，請稍後再試。"));
         }

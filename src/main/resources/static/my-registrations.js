@@ -69,7 +69,7 @@ async function loadRegistrations() {
     }
 }
 async function cancelRegistration(registration) {
-    if (busy || !confirm("確定要取消「" + (registration.eventTitle || "此活動") + "」的報名嗎？")) return;
+    if (busy || !await confirmRegistrationCancellation(registration.eventTitle)) return;
     busy = true;
     list.querySelectorAll("button").forEach(button => { button.disabled = true; });
     actionMessage.textContent = "取消報名中……";

@@ -96,7 +96,7 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     registered.textContent = "✓ 已報名";
     actions.append(register, registered, link, cancel);
     body.append(actions);
-    const feedback = addText(body, "p", "");
+    const feedback = addText(body, "div", "");
     feedback.setAttribute("role", "status");
     let busy = false;
     let isRegistered = registration?.status === "REGISTERED";
@@ -121,7 +121,7 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
             return;
         }
         const removing = method === "DELETE";
-        if (removing && !confirm("確定要取消「" + event.title + "」的報名嗎？")) return;
+        if (removing && !await confirmRegistrationCancellation(event.title)) return;
         busy = true;
         register.disabled = cancel.disabled = true;
         feedback.textContent = "處理中……";
@@ -130,6 +130,7 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
                 : "/registration?eventId=" + event.id;
             const response = await DndAuth.request(path, { method });
             if (!response.ok) {
+                if (!removing && await showRegistrationConflict(response, feedback)) return;
                 const error = new Error(await DndAuth.errorMessage(response, "操作失敗，請稍後再試。"));
                 error.status = response.status;
                 throw error;

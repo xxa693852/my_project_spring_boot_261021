@@ -8,6 +8,9 @@ import java.util.UUID;
 
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.jdbc.core.JdbcTemplate;
+import student.jia.my_project_spring_boot_261021.service.EventReminderDelivery;
+import student.jia.my_project_spring_boot_261021.service.CancellationNotificationDelivery;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,6 +62,7 @@ class DatabaseIntegrationTests {
     @Autowired private JwtService jwtService;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private MemberRepository members;
+    @Autowired private JdbcTemplate jdbc;
     @Autowired private EventRepository events;
     @Autowired private RegistrationRepository registrations;
     @Autowired private AuthTokenRepository tokens;
@@ -563,6 +567,55 @@ class DatabaseIntegrationTests {
                 () -> registrationService.register(member.getId(), overlapping.getId()));
         assertEquals("你已報名另一場時段重疊的活動", error.getMessage());
         assertEquals(0, registrations.countByEventIdAndStatus(overlapping.getId(), "REGISTERED"));
+    }
+
+
+    @Test
+    void remindersUsePrimaryAndLateWindowsAndSendOnlyOnce() {
+        Member owner = createMember();
+        Member early = createMember();
+        Member late = createMember();
+        Member tooLate = createMember();
+        Member cancelled = createMember();
+        Event event = createEvent(owner.getId(), 5);
+        LocalDateTime start = LocalDateTime.of(2099, 1, 10, 14, 0);
+        event.setStartAt(start);
+        event.setEndAt(start.plusHours(4));
+        event.setRegistrationDeadline(start.minusHours(2));
+        event.setLocation("Taipei & Table 2");
+        LocalDateTime primary = start.minusHours(24);
+        LocalDateTime fallback = start.minusHours(4);
+        saveReminderRegistration(early, event, primary.minusMinutes(1), false);
+        saveReminderRegistration(late, event, primary.plusMinutes(1), false);
+        saveReminderRegistration(tooLate, event, fallback, false);
+        saveReminderRegistration(cancelled, event, primary.minusMinutes(1), true);
+        reloadFromDatabase();
+
+        var sender = org.mockito.Mockito.mock(CancellationNotificationDelivery.class,
+                invocation -> { throw new IllegalStateException("Simulated ambiguous delivery"); });
+        var delivery = new EventReminderDelivery(jdbc, members, sender, false, "https://example.com/");
+        org.springframework.test.util.ReflectionTestUtils.invokeMethod(delivery, "deliverDue", primary);
+        org.springframework.test.util.ReflectionTestUtils.invokeMethod(delivery, "deliverDue", fallback);
+        org.springframework.test.util.ReflectionTestUtils.invokeMethod(delivery, "deliverDue", fallback.plusMinutes(1));
+
+        var invocations = org.mockito.Mockito.mockingDetails(sender).getInvocations();
+        assertEquals(2, invocations.size());
+        var calls = new ArrayList<>(invocations);
+        assertEquals(early.getId(), ((Member) calls.get(0).getArgument(0)).getId());
+        assertEquals(late.getId(), ((Member) calls.get(1).getArgument(0)).getId());
+        String message = calls.get(1).getArgument(2);
+        assertTrue(message.contains("Taipei+%26+Table+2"));
+        assertTrue(message.contains("https://example.com/my-registrations.html"));
+    }
+
+    private void saveReminderRegistration(Member member, Event event, LocalDateTime time, boolean cancelled) {
+        Registration registration = registrations.saveAndFlush(new Registration(member.getId(), event.getId()));
+        registration.setRegisteredAt(time);
+        if (cancelled) {
+            registration.setStatus("CANCELLED");
+            registration.setCancelledAt(time.plusMinutes(1));
+        }
+        registrations.save(registration);
     }
 
     private void reloadFromDatabase() {

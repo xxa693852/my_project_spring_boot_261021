@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.exception.ResourceNotFoundException;
+import student.jia.my_project_spring_boot_261021.exception.RegistrationConflictException;
 import student.jia.my_project_spring_boot_261021.repository.EventRepository;
 import student.jia.my_project_spring_boot_261021.repository.MemberRepository;
 import student.jia.my_project_spring_boot_261021.repository.RegistrationRepository;
@@ -101,10 +102,10 @@ public class RegistrationService {
                     ResponseMessages.EVENT_FULL);
         }
 
-        long overlappingRegistrations = registrationRepository.countOverlappingRegistrations(
+        List<Event> overlappingEvents = registrationRepository.findOverlappingEvents(
                 memberId, eventId, targetEvent.getStartAt(), targetEvent.getEndAt());
-        if (overlappingRegistrations > 0) {
-            throw new IllegalArgumentException("你已報名另一場時段重疊的活動");
+        if (!overlappingEvents.isEmpty()) {
+            throw new RegistrationConflictException(overlappingEvents);
         }
 
         Registration registration;

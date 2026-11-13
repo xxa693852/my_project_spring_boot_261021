@@ -23,7 +23,7 @@
         link.hidden = !status.notificationsEnabled || !status.lineAvailable || status.linked;
         unlink.hidden = !status.linked;
         if (!status.notificationsEnabled) {
-            preference.textContent = "活動取消通知目前尚未開放。";
+            preference.textContent = "活動通知目前尚未開放。";
         } else if (status.linked && status.lineAvailable) {
             preference.textContent = "優先使用 LINE。LINE 無法推播時，會視寄送結果改用 Email。";
         } else {

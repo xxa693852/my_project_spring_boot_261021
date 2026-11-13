@@ -289,3 +289,25 @@ form button { margin-top: 1rem; }
     .event-card, #settings { grid-template-columns: minmax(0, 1fr); }
     .event-card .event-cover { height: clamp(165px, 48vw, 285px); aspect-ratio: auto; }
 }
+
+.cancel-registration-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(440px, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--ink);
+    background: var(--parchment);
+}
+.cancel-registration-dialog::backdrop { background: rgb(20 39 31 / 62%); }
+.cancel-registration-dialog form { border: 0; }
+.cancel-registration-dialog button { margin-top: 0; }
+.cancel-registration-dialog button[value="cancel"] {
+    color: var(--error);
+    background: transparent;
+    border-color: currentColor;
+}
+html:has(.cancel-registration-dialog[open]) { overflow: hidden; }
