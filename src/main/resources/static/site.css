@@ -311,3 +311,10 @@ form button { margin-top: 1rem; }
     border-color: currentColor;
 }
 html:has(.cancel-registration-dialog[open]) { overflow: hidden; }
+
+.member-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; margin-block: 1rem; }
+.member-results article, .member-dialog-content { overflow-wrap: anywhere; }
+#member-dialog { width: min(680px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--border); border-radius: var(--radius); color: var(--ink); background: var(--parchment); }
+#member-dialog::backdrop { background: rgb(20 39 31 / 62%); }
+.member-dialog-content { padding: 1.25rem; }
+.member-dialog-content select { display: block; max-width: 100%; font: inherit; padding: .5rem; }

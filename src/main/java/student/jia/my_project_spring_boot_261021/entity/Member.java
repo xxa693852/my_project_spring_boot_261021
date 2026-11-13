@@ -45,6 +45,16 @@ public class Member {
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE"; // 帳號狀態：ACTIVE、DISABLED
 
+    @Column(name = "suspended_at")
+    private LocalDateTime suspendedAt;
+
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
+    public boolean isSuspendedAt(LocalDateTime now) {
+        return suspendedAt != null && (suspendedUntil == null || now.isBefore(suspendedUntil));
+    }
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

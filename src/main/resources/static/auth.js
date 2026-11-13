@@ -37,7 +37,7 @@
     }
     // Only permit these local pages as login destinations.
     function destination(value) {
-        return /^\/(events\.html(?:\?(?:page=[1-9]\d*(?:&event=[1-9]\d*)?|event=[1-9]\d*))?|admin-events\.html|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
+        return /^\/(events\.html(?:\?(?:page=[1-9]\d*(?:&event=[1-9]\d*)?|event=[1-9]\d*))?|admin-(?:events|members)\.html|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
             ? value : "/events.html";
     }
     function loginUrl() {
@@ -169,6 +169,11 @@
             link.textContent = "活動管理";
             if (location.pathname === link.pathname) link.setAttribute("aria-current", "page");
             container.append(link);
+            const members = document.createElement("a");
+            members.href = "/admin-members.html";
+            members.textContent = "會員管理";
+            if (location.pathname === members.pathname) members.setAttribute("aria-current", "page");
+            container.append(members);
         }).catch(error => {
             if (error.status === 401 && !session()) renderNav(container);
         });

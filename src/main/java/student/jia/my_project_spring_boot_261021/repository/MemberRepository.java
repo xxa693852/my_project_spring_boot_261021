@@ -21,6 +21,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             """)
     int updateNotificationLineUserId(@Param("id") Long id, @Param("lineUserId") String lineUserId);
 
+    org.springframework.data.domain.Page<Member> findByAccountContainingOrNameContainingOrEmailContaining(
+            String account, String name, String email, org.springframework.data.domain.Pageable pageable);
+
     boolean existsByAccount(String account); //帳戶存在
 
     boolean existsByEmail(String email);  // 透過電子郵件

@@ -618,6 +618,52 @@ class DatabaseIntegrationTests {
         registrations.save(registration);
     }
 
+
+    @Test
+    void adminSuspensionBlocksNewRegistrationWithoutBlockingCancellation() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        Member player = createMember();
+        String adminAuth = bearer(login(admin));
+        String playerAuth = bearer(login(player));
+        Event existing = createEvent(admin.getId(), 2);
+        Event another = createEvent(admin.getId(), 2);
+        registrationService.register(player.getId(), existing.getId());
+        String path = "/admin/members/" + player.getId();
+        String suspend = "{\"action\":\"SUSPEND\",\"reason\":\"測試\"}";
+
+        mvc.perform(get("/admin/members").header("Authorization", playerAuth))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/admin/members").param("query", player.getEmail()).header("Authorization", adminAuth))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(player.getId()));
+        mvc.perform(post(path + "/suspension").header("Authorization", adminAuth)
+                .contentType(MediaType.APPLICATION_JSON).content(suspend))
+                .andExpect(status().isOk());
+        mvc.perform(get(path).header("Authorization", adminAuth))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.member.suspended").value(true))
+                .andExpect(jsonPath("$.member.password").doesNotExist())
+                .andExpect(jsonPath("$.actions[0].reason").value("測試"))
+                .andExpect(jsonPath("$.registrations[0].status").value("REGISTERED"));
+        mvc.perform(post("/registration").param("eventId", another.getId().toString())
+                .header("Authorization", playerAuth))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("帳號停權中，無法報名新活動"));
+        mvc.perform(delete("/registration/events/" + existing.getId()).header("Authorization", playerAuth))
+                .andExpect(status().isOk());
+        mvc.perform(post(path + "/suspension").header("Authorization", adminAuth)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"LIFT\",\"reason\":\"解除測試\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get(path).header("Authorization", adminAuth))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.member.suspended").value(false));
+        mvc.perform(post("/registration").param("eventId", another.getId().toString())
+                .header("Authorization", playerAuth)).andExpect(status().isCreated());
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Taipei"));
+        player.setSuspendedAt(now.minusDays(1));
+        player.setSuspendedUntil(now);
+        assertFalse(player.isSuspendedAt(now));
+        assertTrue(player.isSuspendedAt(now.minusSeconds(1)));
+    }
+
     private void reloadFromDatabase() {
         // flush 將變更送到 MySQL；clear 清除 JPA 快取，後續查詢才會重新讀取資料庫。
         // 這不會提交交易，案例結束後仍會回滾。

@@ -52,6 +52,10 @@ public class RegistrationService {
                 ResponseMessages.MEMBER_NOT_FOUND);
     }
 
+    if (member.get().isSuspendedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Taipei")))) {
+        throw new IllegalArgumentException("帳號停權中，無法報名新活動");
+    }
+
     // 2. 查詢活動
     Optional<Event> event =
         eventRepository.findByIdForUpdate(eventId);

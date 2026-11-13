@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D&amp;D 會員管理</title>
+    <link rel="stylesheet" href="/site.css?v=member-admin">
+    <script src="/auth.js?v=member-admin" defer></script>
+    <script src="/taipei-date-picker.js?v=1" defer></script>
+    <script src="/admin-members.js?v=suspension-notice" defer></script>
+</head>
+<body>
+<header class="site-header">
+    <div class="site-bar">
+        <a class="site-brand" href="/events.html">D&amp;D 活動報名</a>
+        <nav id="member-nav" aria-label="會員"></nav>
+    </div>
+</header>
+<main class="page">
+    <h1>會員管理</h1>
+    <p id="member-status" role="status"></p>
+    <section id="member-management" hidden>
+        <form id="member-search">
+            <label for="member-query">帳號、姓名或 Email</label>
+            <input id="member-query" type="search" maxlength="254">
+            <button type="submit">搜尋</button>
+        </form>
+        <div id="member-results" class="member-results"></div>
+        <nav class="actions" aria-label="會員列表分頁">
+            <button id="member-previous" type="button">上一頁</button>
+            <span id="member-page"></span>
+            <button id="member-next" type="button">下一頁</button>
+        </nav>
+    </section>
+    <dialog id="member-dialog" aria-labelledby="member-title">
+        <div class="member-dialog-content">
+            <button id="member-close" type="button" autofocus>關閉</button>
+            <h2 id="member-title">會員詳情</h2>
+            <p id="member-detail-status" role="status"></p>
+            <div id="member-details"></div>
+            <form id="member-suspension" hidden>
+                <label for="member-operation">停權操作</label>
+                <select id="member-operation"></select>
+                <div id="member-until-group">
+                    <label for="member-until">停權截止（台北時間）</label>
+                    <input id="member-until" type="datetime-local">
+                </div>
+                <label for="member-reason">原因（停權時會通知會員）</label>
+                <textarea id="member-reason" maxlength="500" required></textarea>
+                <button type="submit">儲存停權設定</button>
+            </form>
+        </div>
+    </dialog>
+</main>
+</body>
+</html>
