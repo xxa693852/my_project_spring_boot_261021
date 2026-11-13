@@ -233,6 +233,46 @@ class DatabaseIntegrationTests {
     }
 
     @Test
+    void publicActivityPagesKeepStableOrderAndExcludeCancelledEvents() throws Exception {
+        Member owner = createMember();
+        List<Event> existingEvents = events.findByStatusOrderByStartAtAsc("OPEN");
+        LocalDateTime start = LocalDateTime.now().plusDays(2);
+        if (!existingEvents.isEmpty()) {
+            start = existingEvents.get(0).getStartAt().minusDays(1);
+        }
+
+        List<Long> openIds = new ArrayList<>();
+        for (int index = 0; index < 8; index++) {
+            Event event = createEvent(owner.getId(), 2);
+            event.setStartAt(start);
+            event.setEndAt(start.plusHours(4));
+            event.setRegistrationDeadline(start.minusHours(1));
+            if (index == 0) {
+                event.setStatus("CANCELLED");
+            } else {
+                openIds.add(event.getId());
+            }
+        }
+        reloadFromDatabase();
+
+        mvc.perform(get("/events/page"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.totalEvents").value(existingEvents.size() + 7))
+                .andExpect(jsonPath("$.events.length()").value(6))
+                .andExpect(jsonPath("$.events[0].id").value(openIds.get(0).intValue()))
+                .andExpect(jsonPath("$.events[5].id").value(openIds.get(5).intValue()));
+        mvc.perform(get("/events/page").param("page", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.events[0].id").value(openIds.get(6).intValue()));
+        mvc.perform(get("/events/page").param("page", "0"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(existingEvents.size() + 7));
+    }
+
+    @Test
     void registrationCancellationAndReregistrationPersistThroughApi() throws Exception {
         Member member = createMember();
         TokenResponse login = login(member);
@@ -502,6 +542,27 @@ class DatabaseIntegrationTests {
 
     private String bearer(TokenResponse login) {
         return "Bearer " + login.getAccessToken();
+    }
+
+    @Test
+    void registrationRejectsOverlappingEventsAtTheSameVenue() {
+        Member member = createMember();
+        Event first = createEvent(member.getId(), 2);
+        Event adjacent = createEvent(member.getId(), 2);
+        Event overlapping = createEvent(member.getId(), 2);
+        adjacent.setStartAt(first.getEndAt());
+        adjacent.setEndAt(first.getEndAt().plusHours(2));
+        overlapping.setStartAt(first.getEndAt().minusMinutes(30));
+        overlapping.setEndAt(first.getEndAt().plusHours(1));
+        reloadFromDatabase();
+
+        registrationService.register(member.getId(), first.getId());
+        registrationService.register(member.getId(), adjacent.getId());
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> registrationService.register(member.getId(), overlapping.getId()));
+        assertEquals("你已報名另一場時段重疊的活動", error.getMessage());
+        assertEquals(0, registrations.countByEventIdAndStatus(overlapping.getId(), "REGISTERED"));
     }
 
     private void reloadFromDatabase() {

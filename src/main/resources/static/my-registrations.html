@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 我的報名</title>
-    <link rel="stylesheet" href="/site.css">
-    <script src="/auth.js?v=20261112" defer></script>
+    <link rel="stylesheet" href="/site.css?v=2.5">
+    <script src="/auth.js?v=2.5" defer></script>
+    <script src="/line-notification-prompt.js?v=2.5.1" defer></script>
     <script src="/my-registrations.js" defer></script>
 </head>
 <body>
@@ -17,11 +18,11 @@
     </header>
     <main class="page">
         <h1>我的報名</h1>
+        <p id="line-notification-prompt" class="notification-prompt" data-load-notification-status hidden><a href="/member-settings.html#line-notification-form">綁定 LINE 接收活動取消通知</a></p>
         <p id="message" role="status" aria-live="polite">報名紀錄載入中……</p>
         <button id="retry" type="button" hidden>重新載入</button>
         <p id="action-message" role="status" aria-live="polite"></p>
         <div id="registration-list"></div>
-    </body>
-    </html>    </main>
+    </main>
 </body>
 </html>

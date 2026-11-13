@@ -190,7 +190,7 @@ async function loadList(page = currentPage) {
         text(card, "p", "活動狀態：" + (statuses[event.status] || event.status));
         text(card, "p", "開始時間：" + event.startAt.replace("T", " "));
         text(card, "p", "地點：" + event.location);
-        text(card, "p", "有效報名：" + event.registeredCount + " 人；剩餘名額：" + event.remainingSlots + " / " + event.capacity);
+        text(card, "p", "已報名：" + event.registeredCount + " 人；剩餘名額：" + event.remainingSlots + " / " + event.capacity);
         const edit = document.createElement("button");
         edit.type = "button";
         edit.textContent = canEdit(event) ? "修改活動" : "查看活動資料";
@@ -258,7 +258,7 @@ function openForm(event, opener) {
     editable = !event || canEdit(event);
     formTitle.textContent = event ? "活動資料／修改" : "新增活動";
     document.getElementById("form-info").textContent = event
-        ? "有效報名：" + event.registeredCount + " 人。名額上限不得低於此人數。" +
+        ? "已報名：" + event.registeredCount + " 人。名額上限不得低於此人數。" +
           (editable ? "" : " 此活動已取消、關閉或開始，僅供查看。") : "";
     if (event) for (const key of keys) {
         if (key === "beginnerFriendly") form.elements[key].checked = event[key];
@@ -369,7 +369,7 @@ form.addEventListener("submit", async event => {
     }
 });
 async function cancelEvent(event) {
-    if (busy || !confirm("確定取消「" + event.title + "」？取消整場活動會一併取消所有有效報名")) return;
+    if (busy || !confirm("確定取消「" + event.title + "」？取消整場活動會一併取消所有已報名玩家的報名")) return;
     setBusy(true);
     try {
         const data = await checked("/admin/events/" + event.id, { method: "DELETE" });

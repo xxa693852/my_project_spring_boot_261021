@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 活動管理</title>
-    <link rel="stylesheet" href="/site.css?v=20261112-event-presentation">
-    <script src="/auth.js?v=20261112" defer></script>
+    <link rel="stylesheet" href="/site.css?v=2.5">
+    <script src="/auth.js?v=2.5" defer></script>
     <script src="/event-presentation.js" defer></script>
-    <script src="/admin-events.js?v=20261113-notifications" defer></script>
+    <script src="/admin-events.js?v=registration-label" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -21,7 +21,9 @@
         <p id="message" role="status" aria-live="polite">確認權限中……</p>
         <button id="retry" type="button" hidden>重新載入</button>
         <div id="management" hidden>
-            <button id="new-event" type="button">新增活動</button>
+            <div class="admin-event-toolbar">
+                <button id="new-event" type="button">新增活動</button>
+            </div>
             <p>所有活動日期與時間均以台北時間（Asia/Taipei，UTC+08:00）輸入及顯示。</p>
             <dialog id="event-dialog" aria-labelledby="form-title">
                 <form id="event-form">

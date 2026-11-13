@@ -1,5 +1,7 @@
 package student.jia.my_project_spring_boot_261021.repository;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import student.jia.my_project_spring_boot_261021.entity.Event;
@@ -26,4 +28,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     // 查詢指定狀態的活動，開始時間由近到遠排列
 List<Event> findByStatusOrderByStartAtAsc(String status);
+
+    Page<Event> findByStatus(String status, Pageable pageable);
 }

@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Isolation;
 public class EventService {
 
     private static final int ADMIN_PAGE_SIZE = 10;
+    private static final int PUBLIC_PAGE_SIZE = 6;
 
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
@@ -128,23 +129,9 @@ public class EventService {
         @Transactional(readOnly = true)
         public EventPageResponse findAdminPage(Long memberId, int page) {
             validateAdmin(memberId);
-            if (page < 1) {
-                throw new IllegalArgumentException("頁碼必須從 1 開始");
-            }
-
-            if ((page - 1L) * ADMIN_PAGE_SIZE > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("頁碼超出查詢範圍");
-            }
-
-            // 建立時間相同時，以唯一的活動 ID 決定先後。
-            PageRequest pageRequest =
-                    PageRequest.of(page - 1, ADMIN_PAGE_SIZE, Sort.Direction.DESC, "createdAt", "id");
-            Page<Event> eventPage = eventRepository.findAll(pageRequest);
-            List<EventResponse> responses = new ArrayList<>();
-            for (Event event : eventPage) {
-                responses.add(toEventResponse(event));
-            }
-            return new EventPageResponse(responses, page, eventPage.getTotalPages(), eventPage.getTotalElements());
+            PageRequest pageRequest = eventPageRequest(page, ADMIN_PAGE_SIZE,
+                    Sort.Direction.DESC, "createdAt");
+            return toEventPageResponse(eventRepository.findAll(pageRequest), page);
         }
 
     @Transactional(readOnly = true)
@@ -353,6 +340,33 @@ public class EventService {
 
 
         // 玩家查詢活動列表
+    @Transactional(readOnly = true)
+    public EventPageResponse findPublicPage(int page) {
+        PageRequest pageRequest = eventPageRequest(page, PUBLIC_PAGE_SIZE,
+                Sort.Direction.ASC, "startAt");
+        return toEventPageResponse(eventRepository.findByStatus("OPEN", pageRequest), page);
+    }
+
+    private PageRequest eventPageRequest(int page, int pageSize, Sort.Direction direction, String sortField) {
+        if (page < 1) {
+            throw new IllegalArgumentException("頁碼必須從 1 開始");
+        }
+        if ((page - 1L) * pageSize > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("頁碼超出查詢範圍");
+        }
+
+        // 時間相同時，以唯一的活動 ID 決定順序。
+        return PageRequest.of(page - 1, pageSize, direction, sortField, "id");
+    }
+
+    private EventPageResponse toEventPageResponse(Page<Event> eventPage, int page) {
+        List<EventResponse> responses = new ArrayList<>();
+        for (Event event : eventPage) {
+            responses.add(toEventResponse(event));
+        }
+        return new EventPageResponse(responses, page, eventPage.getTotalPages(), eventPage.getTotalElements());
+    }
+
     @Transactional(readOnly = true)
     public List<Event> findPublicEvents() {
         return eventRepository.findByStatusOrderByStartAtAsc("OPEN");

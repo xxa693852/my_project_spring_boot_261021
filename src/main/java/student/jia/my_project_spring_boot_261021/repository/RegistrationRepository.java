@@ -1,6 +1,9 @@
 package student.jia.my_project_spring_boot_261021.repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
@@ -12,6 +15,16 @@ public interface RegistrationRepository
     // 查詢這位會員對這場活動的紀錄，包含已取消的紀錄
     Optional<Registration> findByMemberIdAndEventId(
             Long memberId, Long eventId);
+
+    @Query("""
+            SELECT COUNT(r) FROM Registration r, Event e
+            WHERE r.eventId = e.id AND r.memberId = :memberId
+              AND r.eventId <> :eventId AND r.status = 'REGISTERED' AND e.status = 'OPEN'
+              AND e.startAt < :endAt AND e.endAt > :startAt
+            """)
+    long countOverlappingRegistrations(
+            @Param("memberId") Long memberId, @Param("eventId") Long eventId,
+            @Param("startAt") LocalDateTime startAt, @Param("endAt") LocalDateTime endAt);
 
     // 取消整場活動時，查出仍有效的報名，逐筆更新狀態與取消時間。
     List<Registration> findByEventIdAndStatus(Long eventId, String status);

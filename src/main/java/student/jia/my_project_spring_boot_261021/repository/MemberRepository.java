@@ -1,5 +1,7 @@
 package student.jia.my_project_spring_boot_261021.repository;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -31,6 +33,10 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
   // 依會員 ID 和狀態查詢
     Optional<Member> findByIdAndStatus(Long id, String status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM Member m WHERE m.id = :id AND m.status = 'ACTIVE'")
+    Optional<Member> findActiveByIdForUpdate(@Param("id") Long id);
 
   //會員忘記密碼用
   Optional<Member> findByEmailAndStatus(String email, String status);  

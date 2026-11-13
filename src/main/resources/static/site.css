@@ -42,7 +42,12 @@ a:hover { color: #3d290d; }
 
 [hidden] { display: none !important; }
 
+html { scroll-padding-top: calc(var(--site-header-height, 4rem) + .75rem); }
+
 .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     color: #fbf4e2;
     background: var(--forest-dark);
     border-bottom: 3px solid #9c7546;
@@ -112,7 +117,15 @@ article, form { padding: clamp(1rem, 3vw, 1.75rem); }
 #event-dialog::backdrop { background: rgb(20 39 31 / 65%); }
 html:has(#event-dialog[open]) { overflow: hidden; }
 #event-form { margin: 0; border: 0; }
-#event-pagination {
+.admin-event-toolbar {
+    position: sticky;
+    top: var(--site-header-height, 4rem);
+    z-index: 5;
+    width: fit-content;
+    padding-block: .5rem;
+}
+
+#event-pagination, .public-pagination {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -202,7 +215,43 @@ form button { margin-top: 1rem; }
     min-width: 0;
     padding: clamp(1.1rem, 3vw, 2rem);
 }
+.event-card-heading {
+    display: flex;
+    align-items: baseline;
+    gap: .4rem .75rem;
+    flex-wrap: wrap;
+    margin-bottom: .65rem;
+}
+.event-card-heading h2 { margin: 0; }
+.event-status {
+    padding: .14rem .55rem;
+    border: 1px solid #c8bda9;
+    border-radius: 6px;
+    background: #f0eadf;
+    color: #504537;
+    font-size: .9rem;
+    font-weight: 650;
+}
+.event-status-open {
+    border-color: #bdceb8;
+    color: var(--forest-dark);
+    background: #e3ebde;
+}
 .event-card-body > p { margin: .35rem 0; }
+.event-schedule { color: var(--ink); font-weight: 650; }
+.event-card-body .event-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    margin-block: .75rem;
+}
+.notification-prompt {
+    padding: .55rem .8rem;
+    border-inline-start: 3px solid var(--bronze);
+    background: #efe1c6;
+}
+#line-notification-form:target { outline: 2px solid var(--bronze); }
 .event-card-body .actions { margin-top: 1.1rem; }
 .event-label {
     display: inline-block;
@@ -232,6 +281,11 @@ form button { margin-top: 1rem; }
 #settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
 
 @media (max-width: 680px) {
+    .site-bar { gap: .3rem .65rem; padding-block: .4rem; }
+    .site-brand { font-size: 1rem; }
+    #member-nav { gap: .25rem .7rem; font-size: .9rem; }
+    #member-nav button { padding: .2rem .55rem; }
+    .nav-session-status { display: none; }
     .event-card, #settings { grid-template-columns: minmax(0, 1fr); }
     .event-card .event-cover { height: clamp(165px, 48vw, 285px); aspect-ratio: auto; }
 }

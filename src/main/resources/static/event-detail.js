@@ -12,6 +12,10 @@ const register = document.getElementById("register-button");
 const cancel = document.getElementById("cancel-button");
 const login = document.getElementById("login-link");
 const eventId = new URLSearchParams(location.search).get("id");
+const listPage = new URLSearchParams(location.search).get("page");
+if (/^[1-9]\d*$/.test(listPage || "")) {
+    document.querySelector(".back-link").href = "/events.html?page=" + listPage;
+}
 let busy = false;
 function addFact(label, value) {
     const group = document.createElement("div");
@@ -119,6 +123,8 @@ async function changeRegistration(method) {
                 response.status === 401 ? "登入已失效，請重新登入。" : "操作失敗，請稍後再試。"));
         }
         actionMessage.textContent = method === "POST" ? "報名成功。" : "已取消報名。";
+        if (method === "POST") await updateLineNotificationPrompt();
+        else document.getElementById("line-notification-prompt").hidden = true;
     } catch (error) {
         actionMessage.textContent = error.message;
     } finally {

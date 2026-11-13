@@ -41,9 +41,9 @@ public class RegistrationService {
     //活動報名
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void register(Long memberId, Long eventId) {
-    // 1. 查詢啟用中的會員
+    // 1. 鎖定會員，讓同一會員同時送出的報名依序檢查
     Optional<Member> member =
-            memberRepository.findByIdAndStatus(memberId, "ACTIVE");
+            memberRepository.findActiveByIdForUpdate(memberId);
 
     if (member.isEmpty()) {
         throw new ResourceNotFoundException(
@@ -99,6 +99,12 @@ public class RegistrationService {
         if (registeredCount >= targetEvent.getCapacity()) {
             throw new IllegalArgumentException(
                     ResponseMessages.EVENT_FULL);
+        }
+
+        long overlappingRegistrations = registrationRepository.countOverlappingRegistrations(
+                memberId, eventId, targetEvent.getStartAt(), targetEvent.getEndAt());
+        if (overlappingRegistrations > 0) {
+            throw new IllegalArgumentException("你已報名另一場時段重疊的活動");
         }
 
         Registration registration;

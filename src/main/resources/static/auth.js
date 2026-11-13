@@ -37,7 +37,7 @@
     }
     // Only permit these local pages as login destinations.
     function destination(value) {
-        return /^\/(events\.html|admin-events\.html|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
+        return /^\/(events\.html(?:\?(?:page=[1-9]\d*(?:&event=[1-9]\d*)?|event=[1-9]\d*))?|admin-events\.html|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
             ? value : "/events.html";
     }
     function loginUrl() {
@@ -126,6 +126,11 @@
     }
     function renderNav(container) {
         container.replaceChildren();
+        const events = document.createElement("a");
+        events.href = "/events.html";
+        events.textContent = "活動列表";
+        if (location.pathname === events.pathname) events.setAttribute("aria-current", "page");
+        container.append(events);
         const myRegistrations = document.createElement("a");
         myRegistrations.href = "/my-registrations.html";
         myRegistrations.textContent = "我的報名";
@@ -144,7 +149,8 @@
             return;
         }
         const status = document.createElement("span");
-        status.textContent = "已登入 ";
+        status.className = "nav-session-status";
+        status.textContent = "已登入";
         const button = document.createElement("button");
         button.type = "button";
         button.textContent = "登出";
@@ -168,6 +174,12 @@
         });
     }
     window.DndAuth = { session, save, clear, destination, loginUrl, request, errorMessage, renderNav, currentMember };
+    const header = document.querySelector(".site-header");
+    if (header) {
+        new ResizeObserver(() => {
+            document.documentElement.style.setProperty("--site-header-height", header.offsetHeight + "px");
+        }).observe(header);
+    }
     const nav = document.getElementById("member-nav");
     if (nav) {
         renderNav(nav);

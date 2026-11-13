@@ -169,6 +169,11 @@ public class EventController {
             return responses;
         }
 
+        @GetMapping("/page")
+        public EventPageResponse findPage(@RequestParam(name = "page", defaultValue = "1") int page) {
+            return eventService.findPublicPage(page);
+        }
+
         // 玩家查詢活動詳情
         @GetMapping("/{eventId}")
         public EventResponse findById(
