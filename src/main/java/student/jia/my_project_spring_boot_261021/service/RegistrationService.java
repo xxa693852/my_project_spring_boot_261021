@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.Map;
 import student.jia.my_project_spring_boot_261021.response.RegistrationResponse;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import student.jia.my_project_spring_boot_261021.exception.ResourceNotFoundException;
@@ -52,7 +53,7 @@ public class RegistrationService {
                 ResponseMessages.MEMBER_NOT_FOUND);
     }
 
-    if (member.get().isSuspendedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Taipei")))) {
+    if (member.get().isSuspendedAt(LocalDateTime.now(ZoneId.of("Asia/Taipei")))) {
         throw new IllegalArgumentException("帳號停權中，無法報名新活動");
     }
 
@@ -75,7 +76,7 @@ public class RegistrationService {
                     ResponseMessages.EVENT_NOT_OPEN);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
 
         // 4. 檢查報名截止時間
         if (!now.isBefore(targetEvent.getRegistrationDeadline())) {
@@ -226,7 +227,7 @@ public class RegistrationService {
                     ResponseMessages.REGISTRATION_ALREADY_CANCELLED);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
 
         // 4. 這裡報名截止前可以自行取消；截止後聯絡管理員處理
       if (!now.isBefore(targetEvent.getRegistrationDeadline())) {

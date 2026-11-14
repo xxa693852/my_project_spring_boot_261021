@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="/site.css?v=member-admin">
     <script src="/auth.js?v=member-admin" defer></script>
     <script src="/taipei-date-picker.js?v=1" defer></script>
-    <script src="/admin-members.js?v=suspension-notice" defer></script>
+    <link rel="stylesheet" href="/page-jump.css?v=2">
+    <script src="/page-jump.js?v=1" defer></script>
+    <script src="/admin-members.js?v=list-management" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -26,10 +28,15 @@
             <button type="submit">搜尋</button>
         </form>
         <div id="member-results" class="member-results"></div>
-        <nav class="actions" aria-label="會員列表分頁">
+        <nav class="actions" aria-label="會員列表分頁" hidden>
             <button id="member-previous" type="button">上一頁</button>
             <span id="member-page"></span>
+            <span class="page-numbers"></span>
             <button id="member-next" type="button">下一頁</button>
+            <form class="page-jump"><label for="admin-jump-page">跳到第</label>
+                <input id="admin-jump-page" type="number" min="1" step="1" required>
+                <button type="submit">前往</button>
+            </form>
         </nav>
     </section>
     <dialog id="member-dialog" aria-labelledby="member-title">

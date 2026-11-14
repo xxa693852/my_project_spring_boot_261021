@@ -1,6 +1,7 @@
 package student.jia.my_project_spring_boot_261021.response;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import lombok.Getter;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
@@ -38,7 +39,7 @@ public class RegistrationResponse {
             this.registrationDeadline = event.getRegistrationDeadline();
             // The server remains the authority for cancellation eligibility.
             this.canCancel = "REGISTERED".equals(registration.getStatus())
-                    && LocalDateTime.now().isBefore(event.getRegistrationDeadline());
+                    && LocalDateTime.now(ZoneId.of("Asia/Taipei")).isBefore(event.getRegistrationDeadline());
         }
     }
 }

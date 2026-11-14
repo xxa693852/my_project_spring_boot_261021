@@ -12,9 +12,13 @@ const register = document.getElementById("register-button");
 const cancel = document.getElementById("cancel-button");
 const login = document.getElementById("login-link");
 const eventId = new URLSearchParams(location.search).get("id");
-const listPage = new URLSearchParams(location.search).get("page");
-if (/^[1-9]\d*$/.test(listPage || "")) {
-    document.querySelector(".back-link").href = "/events.html?page=" + listPage;
+const detailParams = new URLSearchParams(location.search);
+const listParams = new URLSearchParams();
+for (const name of ["page", "q", "from", "through", "beginnerOnly", "availableOnly"]) {
+    if (detailParams.has(name)) listParams.set(name, detailParams.get(name));
+}
+if (listParams.size) {
+    document.querySelector(".back-link").href = "/events.html?" + listParams;
 }
 let busy = false;
 function addFact(label, value) {
@@ -45,7 +49,8 @@ function showEvent(event) {
     addFact("報名截止", time(event.registrationDeadline));
     addFact("剩餘名額", event.remainingSlots + " / " + event.capacity);
     addFact("已報名", event.registeredCount + " 人");
-    addFact("報名狀態", event.canRegister ? "目前可報名" : "目前不可報名");
+    addFact("報名狀態", event.status === "CANCELLED" ? "活動已取消"
+        : event.canRegister ? "目前可報名" : "目前不可報名");
     description.textContent = event.description;
     panel.hidden = false;
 }
@@ -69,10 +74,12 @@ async function loadEvent() {
         const response = await fetch("/events/" + eventId);
         if (!response.ok) panel.hidden = true;
         if (!response.ok) throw new Error(response.status === 404
-            ? "找不到這個活動，活動可能已取消。" : "無法載入活動，請稍後再試。");
+            ? "找不到這個活動。" : "無法載入活動，請稍後再試。");
         const event = await response.json();
         showEvent(event);
         message.textContent = "";
+        window.loadEventComments(eventId);
+        if (event.status === "CANCELLED") return;
         section.hidden = false;
         if (!DndAuth.session()) {
             showLogin("登入後可查看自己的報名狀態。");

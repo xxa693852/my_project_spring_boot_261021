@@ -1,6 +1,10 @@
 package student.jia.my_project_spring_boot_261021.entity;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,15 +36,19 @@ public class Registration {
     private String status = "REGISTERED"; // REGISTERED：已報名；CANCELLED：已取消
 
     @Column(name = "registered_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime registeredAt;
 
     @Column(name = "cancelled_at")
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime cancelledAt;
 
     @Column(name = "created_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime updatedAt;
 
     protected Registration() { //無參數建構子，JPA需要它
@@ -54,7 +62,7 @@ public class Registration {
     // @PrePersist: 新建時自動初始化建立與更新時間
     @PrePersist
     public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
         this.registeredAt = now;
         this.createdAt = now;
         this.updatedAt = now;
@@ -62,7 +70,7 @@ public class Registration {
     // @PreUpdate: 修改時自動刷新最後更新時間
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
     }
 
 

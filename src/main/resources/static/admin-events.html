@@ -8,7 +8,9 @@
     <script src="/auth.js?v=member-admin" defer></script>
     <script src="/event-presentation.js" defer></script>
     <script src="/taipei-date-picker.js?v=1" defer></script>
-    <script src="/admin-events.js?v=suspension-notice" defer></script>
+    <link rel="stylesheet" href="/page-jump.css?v=2">
+    <script src="/page-jump.js?v=1" defer></script>
+    <script src="/admin-events.js?v=list-management" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -87,9 +89,25 @@
             <nav id="event-pagination" aria-label="活動列表分頁" hidden>
                 <button id="previous-page" type="button">上一頁</button>
                 <span id="page-status" role="status"></span>
+                <span class="page-numbers"></span>
                 <button id="next-page" type="button">下一頁</button>
+                <form class="page-jump"><label for="admin-jump-page">跳到第</label>
+                    <input id="admin-jump-page" type="number" min="1" step="1" required>
+                    <button type="submit">前往</button>
+                </form>
             </nav>
         </div>
     </main>
+    <dialog id="cancel-event-dialog" class="cancel-registration-dialog" aria-labelledby="cancel-event-title"
+            aria-describedby="cancel-event-description">
+        <form method="dialog">
+            <h2 id="cancel-event-title">取消整場活動</h2>
+            <p id="cancel-event-description"></p>
+            <div class="actions">
+                <button type="submit" value="keep" autofocus>保留活動</button>
+                <button type="submit" value="cancel">確認取消整場活動</button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>

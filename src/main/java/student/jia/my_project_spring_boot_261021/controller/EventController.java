@@ -1,9 +1,11 @@
 package student.jia.my_project_spring_boot_261021.controller;
 
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -138,6 +140,17 @@ public class EventController {
         return new ApiResponse("活動已取消");
     }
 
+    @PutMapping("/{eventId}/list-visibility")
+    public ApiResponse changeListVisibility(
+            @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
+            @PathVariable("eventId") Long eventId, @RequestParam("hidden") boolean hidden) {
+        eventService.changeListVisibility(memberId, eventId, hidden);
+        if (hidden) {
+            return new ApiResponse("已從公開列表隱藏。");
+        }
+        return new ApiResponse("已恢復在公開列表顯示。");
+    }
+
     @GetMapping("/{eventId}/notifications")
     public List<Delivery> cancellationNotifications(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
@@ -170,8 +183,15 @@ public class EventController {
         }
 
         @GetMapping("/page")
-        public EventPageResponse findPage(@RequestParam(name = "page", defaultValue = "1") int page) {
-            return eventService.findPublicPage(page);
+        public EventPageResponse findPage(@RequestParam(name = "page", defaultValue = "1") int page,
+                @RequestParam(name = "q", required = false) String keyword,
+                @RequestParam(name = "from", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                @RequestParam(name = "through", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate through,
+                @RequestParam(name = "beginnerOnly", defaultValue = "false") boolean beginnerOnly,
+                @RequestParam(name = "availableOnly", defaultValue = "false") boolean availableOnly) {
+            return eventService.findPublicPage(page, keyword, from, through, beginnerOnly, availableOnly);
         }
 
         // 玩家查詢活動詳情

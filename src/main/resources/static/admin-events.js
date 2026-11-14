@@ -24,6 +24,8 @@ let editingId = null, editable = true, busy = false;
 let currentPage = 1;
 let totalPages = 0;
 let formOpener;
+const cancelDialog = document.getElementById("cancel-event-dialog");
+let eventToCancel;
 
 const datePickers = new Map();
 for (const key of dateKeys) datePickers.set(key, createDatePicker(form.elements[key], form.querySelector('label[for="' + key + '"]')));
@@ -110,19 +112,41 @@ async function loadList(page = currentPage) {
         edit.textContent = canEdit(event) ? "修改活動" : "查看活動資料";
         edit.dataset.eventId = String(event.id);
         edit.addEventListener("click", () => loadForm(event.id, edit));
-        card.append(edit);
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        actions.append(edit);
+        const hasEnded = Date.now() >= Date.parse(event.endAt + "+08:00");
+        if (event.status === "OPEN" && hasEnded) {
+            text(card, "p", "活動已結束，已移出公開列表。");
+        } else if (event.status === "OPEN") {
+            if (event.hiddenFromPublicList) text(card, "p", "已從公開列表隱藏。");
+            const visibility = document.createElement("button");
+            visibility.type = "button";
+            visibility.textContent = event.hiddenFromPublicList ? "恢復公開列表顯示" : "從公開列表隱藏";
+            visibility.addEventListener("click", () => changeListVisibility(event));
+            actions.append(visibility);
+        }
         if (canEdit(event)) {
             const cancel = document.createElement("button");
             cancel.type = "button";
             cancel.textContent = "取消整場活動";
-            cancel.addEventListener("click", () => cancelEvent(event));
-            card.append(cancel);
+            cancel.addEventListener("click", () => {
+                if (busy || cancelDialog.open) return;
+                eventToCancel = event;
+                cancelDialog.returnValue = "";
+                document.getElementById("cancel-event-description").textContent =
+                    "確定取消「" + event.title + "」？所有玩家的報名都會一併取消。";
+                cancelDialog.showModal();
+            });
+            actions.append(cancel);
         }
+        card.append(actions);
         list.append(card);
     }
     currentPage = result.page;
     totalPages = result.totalPages;
-    pagination.hidden = totalPages === 0;
+    pagination.hidden = totalPages < 2;
+    renderPageJump(pagination, currentPage, Math.max(1, totalPages), changePage);
     pageStatus.textContent = "第 " + currentPage + " / " + totalPages + " 頁，共 " + result.totalEvents + " 筆";
 }
 async function loadDeliveryLog(id) {
@@ -283,7 +307,7 @@ form.addEventListener("submit", async event => {
     }
 });
 async function cancelEvent(event) {
-    if (busy || !confirm("確定取消「" + event.title + "」？取消整場活動會一併取消所有已報名玩家的報名")) return;
+    if (busy) return;
     setBusy(true);
     try {
         const data = await checked("/admin/events/" + event.id, { method: "DELETE" });
@@ -292,6 +316,28 @@ async function cancelEvent(event) {
     } catch (error) { message.textContent = error.message; }
     finally { setBusy(false); }
 }
+cancelDialog.addEventListener("close", () => {
+    const event = eventToCancel;
+    eventToCancel = undefined;
+    if (event && cancelDialog.returnValue === "cancel") cancelEvent(event);
+});
+
+async function changeListVisibility(event) {
+    if (busy) return;
+    setBusy(true);
+    try {
+        const hidden = !event.hiddenFromPublicList;
+        const data = await checked("/admin/events/" + event.id + "/list-visibility?hidden=" + hidden,
+            { method: "PUT" });
+        await loadList();
+        message.textContent = data.message;
+    } catch (error) { message.textContent = error.message; }
+    finally {
+        setBusy(false);
+        list.querySelector('[data-event-id="' + event.id + '"]')?.focus({ preventScroll: true });
+    }
+}
+
 async function initialize() {
     if (busy || requireLogin()) return;
     setBusy(true);

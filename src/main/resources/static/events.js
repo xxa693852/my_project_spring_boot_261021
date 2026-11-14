@@ -85,7 +85,9 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     link.className = "event-details-link";
     link.textContent = "查看詳情";
     link.setAttribute("aria-label", "查看詳情：" + event.title);
-    link.href = "/event-detail.html?" + new URLSearchParams({ id: event.id, ...(page > 1 ? { page } : {}) });
+    const detailParams = listParams(page);
+    detailParams.set("id", event.id);
+    link.href = "/event-detail.html?" + detailParams;
     const register = document.createElement("button");
     const cancel = document.createElement("button");
     register.type = cancel.type = "button";
@@ -100,7 +102,9 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     feedback.setAttribute("role", "status");
     let busy = false;
     let isRegistered = registration?.status === "REGISTERED";
-    const returnUrl = pageUrl(page) + (page > 1 ? "&" : "?") + "event=" + event.id;
+    const returnParams = listParams(page);
+    returnParams.set("event", event.id);
+    const returnUrl = "/events.html?" + returnParams;
     const loginUrl = "/login.html?" + new URLSearchParams({ returnTo: returnUrl });
 
     function updateActions() {
@@ -175,8 +179,67 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     return card;
 }
 
+const searchForm = document.getElementById("event-search");
+const searchParams = new URLSearchParams(location.search);
+const filters = new URLSearchParams();
+for (const name of ["q", "from", "through", "beginnerOnly", "availableOnly"]) {
+    const control = searchForm.elements.namedItem(name);
+    const value = (searchParams.get(name) || "").trim();
+    if (control.type === "checkbox") {
+        control.checked = value === "true";
+        if (control.checked) filters.set(name, "true");
+    } else if (value) {
+        control.value = value;
+        if (control.value) filters.set(name, control.value);
+    }
+}
+
+const keywordInput = searchForm.elements.namedItem("q");
+const keywordSuggestions = document.getElementById("event-search-history");
+const keywordHistoryKey = "dnd-event-search-history";
+let keywordHistory = [];
+try {
+    const saved = JSON.parse(localStorage.getItem(keywordHistoryKey) || "[]");
+    if (Array.isArray(saved)) {
+        keywordHistory = saved.filter(term => typeof term === "string" && term.trim() && term.length <= 100)
+            .slice(0, 10);
+    }
+} catch {
+    // 搜尋功能仍可在瀏覽器停用儲存時使用。
+}
+for (const term of keywordHistory) {
+    const option = document.createElement("option");
+    option.value = term;
+    keywordSuggestions.append(option);
+}
+searchForm.addEventListener("submit", () => {
+    const term = keywordInput.value.trim();
+    if (!term) return;
+    const recent = [term, ...keywordHistory.filter(saved => saved !== term)].slice(0, 10);
+    try {
+        localStorage.setItem(keywordHistoryKey, JSON.stringify(recent));
+    } catch {
+        // 儲存失敗時照常送出搜尋。
+    }
+});
+
+const dateFrom = searchForm.elements.namedItem("from");
+const dateThrough = searchForm.elements.namedItem("through");
+function updateDateRange() {
+    dateThrough.min = dateFrom.value || "1000-01-01";
+}
+dateFrom.addEventListener("input", updateDateRange);
+updateDateRange();
+
+function listParams(page) {
+    const params = new URLSearchParams(filters);
+    if (page > 1) params.set("page", page);
+    return params;
+}
+
 function pageUrl(page) {
-    return page > 1 ? "/events.html?page=" + page : "/events.html";
+    const query = listParams(page).toString();
+    return query ? "/events.html?" + query : "/events.html";
 }
 
 async function loadEvents() {
@@ -184,7 +247,11 @@ async function loadEvents() {
     const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 2147483647
         ? requestedPage : 1;
     try {
-        const response = await fetch("/events/page?page=" + page);
+        const response = await fetch("/events/page?" + listParams(page));
+        if (response.status === 400) {
+            message.textContent = await DndAuth.errorMessage(response, "請確認搜尋條件。");
+            return;
+        }
         if (!response.ok) throw new Error("讀取活動失敗，HTTP " + response.status);
         const result = await response.json();
         if (!Array.isArray(result.events) || !Number.isInteger(result.totalPages)) {
@@ -212,7 +279,9 @@ async function loadEvents() {
         for (const event of result.events) {
             eventList.append(createEventCard(event, page, registrations.get(event.id), registrationStatusKnown));
         }
-        message.textContent = result.events.length === 0 ? "目前沒有公開活動。" : "";
+        message.textContent = result.events.length === 0
+            ? (filters.size ? "找不到符合條件的活動，請調整搜尋條件。" : "目前沒有公開活動。")
+            : (filters.size ? "找到 " + result.totalEvents + " 場活動。" : "");
         if (!registrationStatusKnown) {
             message.textContent = "無法讀取你的報名狀態，請重新整理，或從活動詳情操作。";
         }
@@ -233,6 +302,8 @@ async function loadEvents() {
             previous.href = pageUrl(page - 1);
             next.hidden = page === lastPage;
             next.href = pageUrl(page + 1);
+            renderPageJump(document.querySelector(".public-pagination"), page, lastPage,
+                target => location.assign(pageUrl(target)));
             document.getElementById("page-summary").textContent = "第 " + page + " / " + lastPage + " 頁";
             previous.parentElement.hidden = false;
         }

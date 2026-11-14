@@ -1,6 +1,7 @@
 package student.jia.my_project_spring_boot_261021.response;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class EventResponse {
     private String coverTheme;
     private List<String> tags;
     private String status;
+    private boolean hiddenFromPublicList;
 
     // 新增：查詢時計算的資訊
     private long registeredCount;
@@ -46,6 +48,7 @@ public class EventResponse {
             this.tags = List.of(event.getCustomTags().split("\n"));
         }
         this.status = event.getStatus();
+        this.hiddenFromPublicList = event.isHiddenFromPublicList();
 
         // 有效報名人數
         this.registeredCount = registeredCount;
@@ -57,7 +60,7 @@ public class EventResponse {
         // 活動開放、尚未截止，而且還有名額
         this.canRegister =
                 "OPEN".equals(event.getStatus())
-                && LocalDateTime.now().isBefore(
+                && LocalDateTime.now(ZoneId.of("Asia/Taipei")).isBefore(
                         event.getRegistrationDeadline())
                 && this.remainingSlots > 0;
     }

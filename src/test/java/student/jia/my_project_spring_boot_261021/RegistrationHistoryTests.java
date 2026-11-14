@@ -1,6 +1,7 @@
 package student.jia.my_project_spring_boot_261021;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -30,8 +31,8 @@ class RegistrationHistoryTests {
 
     @Test
     void historyIncludesCancelledEventsAndPreservesRegistrationOrder() {
-        Event open = event(11L, "OPEN", LocalDateTime.now().plusDays(1));
-        Event cancelled = event(12L, "CANCELLED", LocalDateTime.now().plusDays(1));
+        Event open = event(11L, "OPEN", LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(1));
+        Event cancelled = event(12L, "CANCELLED", LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(1));
         Registration first = new Registration(7L, 12L);
         first.setStatus("CANCELLED");
         Registration second = new Registration(7L, 11L);
@@ -63,11 +64,11 @@ class RegistrationHistoryTests {
     @Test
     void cancellationEligibilityRespectsDeadlineAndRegistrationStatus() {
         Registration registration = new Registration(7L, 11L);
-        Event event = event(11L, "OPEN", LocalDateTime.now().plusDays(1));
+        Event event = event(11L, "OPEN", LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(1));
         assertTrue(new RegistrationResponse(registration, event).isCanCancel());
-        event.setRegistrationDeadline(LocalDateTime.now().minusSeconds(1));
+        event.setRegistrationDeadline(LocalDateTime.now(ZoneId.of("Asia/Taipei")).minusSeconds(1));
         assertFalse(new RegistrationResponse(registration, event).isCanCancel());
-        event.setRegistrationDeadline(LocalDateTime.now().plusDays(1));
+        event.setRegistrationDeadline(LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(1));
         registration.setStatus("CANCELLED");
         assertFalse(new RegistrationResponse(registration, event).isCanCancel());
     }
@@ -86,7 +87,7 @@ class RegistrationHistoryTests {
     @Test
     void repeatedEventIdsAreQueriedOnceWithoutDroppingRegistrations() {
         // 活動 ID 去重只影響批次查詢，不應減少報名紀錄的筆數或改變順序。
-        Event relatedEvent = event(11L, "OPEN", LocalDateTime.now().plusDays(1));
+        Event relatedEvent = event(11L, "OPEN", LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(1));
         Registration first = new Registration(7L, 11L);
         Registration second = new Registration(7L, 11L);
         second.setStatus("CANCELLED");

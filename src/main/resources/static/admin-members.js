@@ -63,6 +63,9 @@ async function loadPage(targetPage) {
     }
     previous.disabled = page <= 1;
     next.disabled = page >= data.totalPages;
+    const pagination = previous.parentElement;
+    pagination.hidden = data.totalPages < 2;
+    renderPageJump(pagination, page, Math.max(1, data.totalPages), refresh);
     pageLabel.textContent = data.totalPages ? "第 " + page + " / " + data.totalPages + " 頁" : "";
     statusLine.textContent = data.totalElements ? "共 " + data.totalElements + " 位會員" : "沒有符合條件的會員。";
     management.hidden = false;

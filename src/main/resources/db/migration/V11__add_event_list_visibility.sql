@@ -1,0 +1,1 @@
+ALTER TABLE events ADD COLUMN hidden_from_public_list BOOLEAN NOT NULL DEFAULT FALSE;

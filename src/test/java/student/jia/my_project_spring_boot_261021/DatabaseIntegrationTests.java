@@ -1,6 +1,7 @@
 package student.jia.my_project_spring_boot_261021;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -126,7 +127,7 @@ class DatabaseIntegrationTests {
         members.saveAndFlush(admin);
         String authorization = bearer(login(admin));
         Event legacyEvent = createEvent(admin.getId(), 2);
-        LocalDateTime now = LocalDateTime.now().withNano(0);
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei")).withNano(0);
         String body = """
                 {
                     "title": "Presentation Integration Event",
@@ -237,10 +238,113 @@ class DatabaseIntegrationTests {
     }
 
     @Test
+    void publicSearchFiltersBeforePagingAndChecksActualAvailability() throws Exception {
+        Member owner = createMember();
+        String keyword = "Search_" + UUID.randomUUID();
+        LocalDateTime start = LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(2).withHour(23);
+        Event lastMatch = null;
+        for (int index = 0; index < 7; index++) {
+            Event event = createEvent(owner.getId(), 1);
+            event.setStartAt(start);
+            event.setEndAt(start.plusHours(2));
+            event.setRegistrationDeadline(start.minusHours(1));
+            event.setLocation("北車 " + keyword);
+            lastMatch = event;
+        }
+        Event full = createEvent(owner.getId(), 1);
+        full.setTitle(keyword);
+        registrations.saveAndFlush(new Registration(owner.getId(), full.getId()));
+        Event closed = createEvent(owner.getId(), 1);
+        closed.setTitle(keyword);
+        closed.setRegistrationDeadline(LocalDateTime.now(ZoneId.of("Asia/Taipei")).minusHours(1));
+        Event experienced = createEvent(owner.getId(), 1);
+        experienced.setTitle(keyword);
+        experienced.setBeginnerFriendly(false);
+        Event differentDate = createEvent(owner.getId(), 1);
+        differentDate.setTitle(keyword);
+        differentDate.setStartAt(start.plusDays(1));
+        differentDate.setEndAt(start.plusDays(1).plusHours(2));
+        reloadFromDatabase();
+
+        String date = start.toLocalDate().toString();
+        mvc.perform(get("/events/page").param("q", "  " + keyword.toUpperCase(java.util.Locale.ROOT) + "  ")
+                        .param("from", date).param("through", date)
+                        .param("beginnerOnly", "true").param("availableOnly", "true").param("page", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalEvents").value(7))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.events[0].id").value(lastMatch.getId().intValue()))
+                .andExpect(jsonPath("$.events[0].canRegister").value(true));
+        mvc.perform(get("/events/page").param("q", keyword))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalEvents").value(11));
+        mvc.perform(get("/events/page").param("q", keyword.replace("_", "%")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalEvents").value(0));
+        mvc.perform(get("/events/page").param("from", date).param("through", start.minusDays(1).toLocalDate().toString()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void publicListsExcludeEndedAndHiddenEventsWhileKeepingDetailsAndRegistrations() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        Member player = createMember();
+        String authorization = bearer(login(admin));
+        String playerAuthorization = bearer(login(player));
+        String keyword = "Visibility " + UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
+
+        Event upcoming = createEvent(admin.getId(), 2);
+        upcoming.setTitle(keyword);
+        registrations.saveAndFlush(new Registration(player.getId(), upcoming.getId()));
+        Event ended = createEvent(admin.getId(), 2);
+        ended.setTitle(keyword);
+        ended.setRegistrationDeadline(now.minusHours(4));
+        ended.setStartAt(now.minusHours(3));
+        ended.setEndAt(now.minusHours(1));
+        Event inProgress = createEvent(admin.getId(), 2);
+        inProgress.setTitle(keyword);
+        inProgress.setRegistrationDeadline(now.minusHours(2));
+        inProgress.setStartAt(now.minusHours(1));
+        inProgress.setEndAt(now.plusHours(1));
+        reloadFromDatabase();
+
+        mvc.perform(delete("/admin/events/" + inProgress.getId()).header("Authorization", authorization))
+                .andExpect(status().isBadRequest());
+
+        String path = "/admin/events/" + upcoming.getId();
+        String visibility = path + "/list-visibility";
+        mvc.perform(put(visibility).param("hidden", "true").header("Authorization", playerAuthorization))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put(visibility).param("hidden", "true").header("Authorization", authorization))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/events/page").param("q", keyword))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalEvents").value(1))
+                .andExpect(jsonPath("$.events[0].id").value(inProgress.getId().intValue()));
+        mvc.perform(get("/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + ended.getId() + ")]").isEmpty())
+                .andExpect(jsonPath("$[?(@.id == " + upcoming.getId() + ")]").isEmpty());
+        mvc.perform(get("/events/" + ended.getId())).andExpect(status().isOk());
+        mvc.perform(get("/events/" + upcoming.getId())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.registeredCount").value(1));
+        mvc.perform(get(path + "/notifications").header("Authorization", authorization))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+        mvc.perform(get(path).header("Authorization", authorization))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hiddenFromPublicList").value(true));
+        mvc.perform(put(visibility).param("hidden", "false").header("Authorization", authorization))
+                .andExpect(status().isOk());
+        mvc.perform(get("/events/page").param("q", keyword))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalEvents").value(2));
+    }
+
+    @Test
     void publicActivityPagesKeepStableOrderAndExcludeCancelledEvents() throws Exception {
         Member owner = createMember();
-        List<Event> existingEvents = events.findByStatusOrderByStartAtAsc("OPEN");
-        LocalDateTime start = LocalDateTime.now().plusDays(2);
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
+        List<Event> existingEvents = events.findByStatusAndHiddenFromPublicListFalseAndEndAtAfterOrderByStartAtAscIdAsc("OPEN", now);
+        LocalDateTime start = LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusDays(2);
         if (!existingEvents.isEmpty()) {
             start = existingEvents.get(0).getStartAt().minusDays(1);
         }
@@ -249,7 +353,9 @@ class DatabaseIntegrationTests {
         for (int index = 0; index < 8; index++) {
             Event event = createEvent(owner.getId(), 2);
             event.setStartAt(start);
-            event.setEndAt(start.plusHours(4));
+            LocalDateTime end = start.plusHours(4);
+            if (end.isBefore(now.plusHours(1))) end = now.plusHours(1);
+            event.setEndAt(end);
             event.setRegistrationDeadline(start.minusHours(1));
             if (index == 0) {
                 event.setStatus("CANCELLED");
@@ -347,10 +453,12 @@ class DatabaseIntegrationTests {
         Member member = createMember();
         TokenResponse login = login(member);
         Event event = createEvent(member.getId(), 2);
-        event.setRegistrationDeadline(LocalDateTime.now().minusMinutes(1));
+        event.setRegistrationDeadline(LocalDateTime.now(ZoneId.of("Asia/Taipei")).minusMinutes(1));
         Registration registration = registrations.saveAndFlush(new Registration(member.getId(), event.getId()));
         reloadFromDatabase();
 
+        mvc.perform(get("/events/" + event.getId())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.canRegister").value(false));
         mvc.perform(post("/registration").header("Authorization", bearer(login))
                 .param("eventId", event.getId().toString()))
                 .andExpect(status().isBadRequest())
@@ -371,10 +479,10 @@ class DatabaseIntegrationTests {
         Event cancelled = createEvent(member.getId(), 2);
         cancelled.setStatus("CANCELLED");
         Registration older = registrations.saveAndFlush(new Registration(member.getId(), open.getId()));
-        older.setRegisteredAt(LocalDateTime.now().minusHours(2));
+        older.setRegisteredAt(LocalDateTime.now(ZoneId.of("Asia/Taipei")).minusHours(2));
         Registration newer = registrations.saveAndFlush(new Registration(member.getId(), cancelled.getId()));
         newer.setStatus("CANCELLED");
-        newer.setCancelledAt(LocalDateTime.now());
+        newer.setCancelledAt(LocalDateTime.now(ZoneId.of("Asia/Taipei")));
         reloadFromDatabase();
 
         List<RegistrationResponse> history = registrationService.findMyRegistrations(member.getId());
@@ -536,7 +644,7 @@ class DatabaseIntegrationTests {
     }
 
     private Event createEvent(Long ownerId, int capacity) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
         Event event = new Event("Integration Event " + UUID.randomUUID(), "Description", "Host", "Taipei",
                 now.plusDays(2), now.plusDays(3), now.plusDays(1), capacity, true, ownerId);
         Event saved = events.saveAndFlush(event);
@@ -657,7 +765,7 @@ class DatabaseIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.member.suspended").value(false));
         mvc.perform(post("/registration").param("eventId", another.getId().toString())
                 .header("Authorization", playerAuth)).andExpect(status().isCreated());
-        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Taipei"));
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
         player.setSuspendedAt(now.minusDays(1));
         player.setSuspendedUntil(now);
         assertFalse(player.isSuspendedAt(now));

@@ -10,7 +10,10 @@
     <script src="/line-notification-prompt.js?v=2.5.1" defer></script>
     <script src="/event-presentation.js?v=registration-conflict" defer></script>
     <script src="/cancel-registration-dialog.js?v=centered-cancel" defer></script>
-    <script src="/events.js?v=registration-conflict" defer></script>
+    <script src="/page-jump.js?v=1" defer></script>
+    <link rel="stylesheet" href="/event-search.css?v=1">
+    <script src="/events.js?v=search-history" defer></script>
+    <link rel="stylesheet" href="/page-jump.css?v=1">
 </head>
 <body>
     <header class="site-header">
@@ -22,12 +25,31 @@
     <main class="page">
         <h1>D&amp;D 活動列表</h1>
         <p id="line-notification-prompt" class="notification-prompt" data-load-notification-status hidden><a href="/member-settings.html#line-notification-form">綁定 LINE 接收開團提醒與取消通知</a></p>
-        <p id="message" role="status">活動載入中……</p>
+            <form id="event-search" class="event-search" action="/events.html" method="get" aria-label="搜尋活動">
+            <div class="event-search-fields">
+                <label>關鍵字 <input name="q" type="search" autocomplete="off" list="event-search-history" maxlength="100" placeholder="活動名稱或地點"></label>
+                <datalist id="event-search-history"></datalist>
+                <label>開團日期起 <input name="from" type="date" min="1000-01-01" max="9999-12-31"></label>
+                <label>開團日期迄 <input name="through" type="date" min="1000-01-01" max="9999-12-31"></label>
+            </div>
+            <div class="event-search-options">
+                <label><input name="beginnerOnly" type="checkbox" value="true"> 只看新手友善</label>
+                <label><input name="availableOnly" type="checkbox" value="true"> 只看可報名</label>
+                <button type="submit">搜尋</button>
+                <a href="/events.html">清除條件</a>
+            </div>
+        </form>
+    <p id="message" role="status">活動載入中……</p>
         <div id="event-list"></div>
         <nav class="public-pagination" aria-label="活動列表分頁" hidden>
             <a id="previous-page" class="button-link">上一頁</a>
             <span id="page-summary"></span>
+            <span class="page-numbers"></span>
             <a id="next-page" class="button-link">下一頁</a>
+            <form class="page-jump"><label for="event-jump-page">跳到第</label>
+                <input id="event-jump-page" type="number" min="1" step="1" required>
+                <button type="submit">前往</button>
+            </form>
         </nav>
 
     </main>

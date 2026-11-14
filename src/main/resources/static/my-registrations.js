@@ -28,7 +28,7 @@ function render(registration) {
     }
     const actions = document.createElement("div");
     actions.className = "actions";
-    if (registration.eventStatus === "OPEN") {
+    if (["OPEN", "CLOSED", "CANCELLED"].includes(registration.eventStatus)) {
         const link = document.createElement("a");
         link.textContent = "查看活動詳情";
         link.href = "/event-detail.html?id=" + encodeURIComponent(registration.eventId);

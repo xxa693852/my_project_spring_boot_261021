@@ -1,6 +1,10 @@
 package student.jia.my_project_spring_boot_261021.entity;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,12 +40,15 @@ public class Event {
     private String location;
 
     @Column(name = "start_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime startAt;
 
     @Column(name = "end_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime endAt;
 
     @Column(name = "registration_deadline", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime registrationDeadline;
 
     @Column(nullable = false)
@@ -56,6 +63,9 @@ public class Event {
     @Column(name = "custom_tags", nullable = false, length = 84)
     private String customTags = "";
 
+    @Column(name = "hidden_from_public_list", nullable = false)
+    private boolean hiddenFromPublicList;
+
     // OPEN：開放報名；CLOSED：已關閉；CANCELLED：已取消
     @Column(nullable = false, length = 20)
     private String status = "OPEN";
@@ -65,9 +75,11 @@ public class Event {
     private Long createdBy;
 
     @Column(name = "created_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime updatedAt;
 
     // JPA 需要的無參數建構子
@@ -100,14 +112,14 @@ public class Event {
 
     @PrePersist
     public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
         this.createdAt = now;
         this.updatedAt = now;
     }
 
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
     }
 }
 

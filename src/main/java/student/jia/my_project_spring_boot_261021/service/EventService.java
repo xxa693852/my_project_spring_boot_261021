@@ -1,6 +1,8 @@
 package student.jia.my_project_spring_boot_261021.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -73,7 +75,7 @@ public class EventService {
             }
 
         // 3. 報名截止時間必須晚於現在 
-        LocalDateTime now = LocalDateTime.now(); // 程式執行當下的時間
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei")); // 程式執行當下的時間
 
             if (!now.isBefore(request.getRegistrationDeadline())) {
                 throw new IllegalArgumentException(
@@ -218,7 +220,7 @@ public class EventService {
         }
 
         // 4. 原本的活動已開始，就不允許修改
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
 
         if (!now.isBefore(targetEvent.getStartAt())) {
             throw new IllegalArgumentException(
@@ -312,7 +314,7 @@ public class EventService {
         }
 
         // 4. 活動開始前才能取消；剛好等於開始時間也不能取消。
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
 
         if (!now.isBefore(targetEvent.getStartAt())) {
             throw new IllegalArgumentException("活動已開始，不能取消");
@@ -341,10 +343,37 @@ public class EventService {
 
         // 玩家查詢活動列表
     @Transactional(readOnly = true)
-    public EventPageResponse findPublicPage(int page) {
-        PageRequest pageRequest = eventPageRequest(page, PUBLIC_PAGE_SIZE,
-                Sort.Direction.ASC, "startAt");
-        return toEventPageResponse(eventRepository.findByStatus("OPEN", pageRequest), page);
+    public EventPageResponse findPublicPage(int page, String keyword, LocalDate from, LocalDate through,
+            boolean beginnerOnly, boolean availableOnly) {
+        if (from != null && through != null && from.isAfter(through)) {
+            throw new IllegalArgumentException("起始日期不可晚於截止日期。");
+        }
+        if ((from != null && (from.getYear() < 1000 || from.getYear() > 9999))
+                || (through != null && (through.getYear() < 1000 || through.getYear() > 9999))) {
+            throw new IllegalArgumentException("活動日期超出查詢範圍。");
+        }
+
+        PageRequest pageRequest = eventPageRequest(page, PUBLIC_PAGE_SIZE, Sort.Direction.ASC, "startAt");
+        String pattern = null;
+        if (keyword != null && !keyword.isBlank()) {
+            String term = keyword.strip();
+            if (term.length() > 100) {
+                throw new IllegalArgumentException("搜尋關鍵字最多 100 字。");
+            }
+            // 將 LIKE 的特殊字元當成搜尋文字。
+            pattern = "%" + term.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        }
+        LocalDateTime startFrom = null;
+        if (from != null) {
+            startFrom = from.atStartOfDay();
+        }
+        LocalDateTime until = null;
+        if (through != null && !through.equals(LocalDate.of(9999, 12, 31))) {
+            until = through.plusDays(1).atStartOfDay();
+        }
+        Page<Event> matches = eventRepository.searchPublic(pattern, startFrom, until,
+                beginnerOnly, availableOnly, LocalDateTime.now(ZoneId.of("Asia/Taipei")), pageRequest);
+        return toEventPageResponse(matches, page);
     }
 
     private PageRequest eventPageRequest(int page, int pageSize, Sort.Direction direction, String sortField) {
@@ -369,21 +398,38 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public List<Event> findPublicEvents() {
-        return eventRepository.findByStatusOrderByStartAtAsc("OPEN");
+        return eventRepository.findByStatusAndHiddenFromPublicListFalseAndEndAtAfterOrderByStartAtAscIdAsc(
+                "OPEN", LocalDateTime.now(ZoneId.of("Asia/Taipei")));
+    }
+
+    @Transactional
+    public void changeListVisibility(Long memberId, Long eventId, boolean hidden) {
+        validateAdmin(memberId);
+        Optional<Event> result = eventRepository.findByIdForUpdate(eventId);
+        if (result.isEmpty()) {
+            throw new ResourceNotFoundException("event", ResponseMessages.EVENT_NOT_FOUND);
+        }
+        Event event = result.get();
+        if (!"OPEN".equals(event.getStatus())
+                || !LocalDateTime.now(ZoneId.of("Asia/Taipei")).isBefore(event.getEndAt())) {
+            throw new IllegalArgumentException("只有尚未結束的開放活動可以調整公開列表顯示。");
+        }
+        event.setHiddenFromPublicList(hidden);
     }
 
     // 玩家查詢活動詳情
     @Transactional(readOnly = true)
     public Event findPublicEventById(Long eventId) {
-        // 只查詢開放中的活動，查詢結果先用 Optional 接住，再確認是否存在。
-        Optional<Event> optionalEvent =
-                eventRepository.findByIdAndStatus(eventId, "OPEN");
-        if (optionalEvent.isEmpty()) {
-            // 查無活動時由 GlobalExceptionHandler.handleResourceNotFound 回傳原本的 404 錯誤。
-            throw new ResourceNotFoundException(
-                    "event", ResponseMessages.EVENT_NOT_FOUND);
+        Event event = eventRepository.findById(eventId).orElse(null);
+        if (event == null || !isPublicEvent(event)) {
+            throw new ResourceNotFoundException("event", ResponseMessages.EVENT_NOT_FOUND);
         }
-        return optionalEvent.get();
+        return event;
+    }
+
+    static boolean isPublicEvent(Event event) {
+        return "OPEN".equals(event.getStatus()) || "CLOSED".equals(event.getStatus())
+                || "CANCELLED".equals(event.getStatus());
     }
 
         // 查詢有效報名人數，組成活動回應

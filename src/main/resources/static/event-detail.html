@@ -9,7 +9,11 @@
     <script src="/event-presentation.js?v=registration-conflict" defer></script>
     <script src="/line-notification-prompt.js?v=2.5.1" defer></script>
     <script src="/cancel-registration-dialog.js?v=centered-cancel" defer></script>
-    <script src="/event-detail.js?v=registration-conflict" defer></script>
+    <link rel="stylesheet" href="/event-comments.css?v=4">
+    <script src="/page-jump.js?v=1" defer></script>
+    <script src="/event-comments.js?v=page-jump" defer></script>
+    <script src="/event-detail.js?v=event-search" defer></script>
+    <link rel="stylesheet" href="/page-jump.css?v=1">
 </head>
 <body>
     <header class="site-header">
@@ -44,7 +48,41 @@
                 <h2 id="description-heading">活動介紹</h2>
                 <p id="description" class="description"></p>
             </section>
+            <section class="event-comments" aria-labelledby="comments-heading" hidden>
+                <h2 id="comments-heading">活動留言</h2>
+                <p id="comment-access" hidden></p>
+                <a id="comment-login" hidden>登入後留言</a>
+                <form id="comment-form" hidden>
+                    <label for="comment-body">留言內容</label>
+                    <textarea id="comment-body" rows="3" required maxlength="500"
+                              aria-describedby="comment-limit"></textarea>
+                    <p id="comment-limit">最多 500 字</p>
+                    <button type="submit">送出留言</button>
+                </form>
+                <p id="comment-message" role="status"></p>
+                <div id="comment-list"></div>
+                <nav id="comment-pages" class="actions" aria-label="留言分頁" hidden>
+                    <button id="comment-previous" type="button">上一頁</button>
+                    <span id="comment-page-number"></span>
+                    <span class="page-numbers"></span>
+                    <button id="comment-next" type="button">下一頁</button>
+                    <form class="page-jump"><label for="comment-jump-page">跳到第</label>
+                        <input id="comment-jump-page" type="number" min="1" step="1" required>
+                        <button type="submit">前往</button>
+                    </form>
+                </nav>
+            </section>
         </div>
     </main>
+    <dialog id="delete-comment-dialog" class="cancel-registration-dialog" aria-labelledby="delete-comment-title">
+        <form method="dialog">
+            <h2 id="delete-comment-title">刪除留言</h2>
+            <p>確定要刪除這則留言嗎？刪除後無法復原。</p>
+            <div class="actions">
+                <button type="submit" value="keep" autofocus>保留留言</button>
+                <button type="submit" value="cancel">確認刪除</button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>

@@ -1,0 +1,28 @@
+.page-numbers, .page-jump {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+}
+nav .page-jump {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+.page-numbers button, .page-jump button { margin: 0; }
+.page-numbers button {
+    min-width: 2.75rem;
+    padding-inline: .65rem;
+    color: var(--ink);
+    background: var(--parchment);
+    border: 1px solid var(--border);
+}
+.page-numbers button[aria-current="page"] {
+    background: var(--ink);
+    color: var(--parchment);
+}
+.page-jump input[type="number"] { width: 5rem; margin: 0; }
+#comment-list { scroll-margin-top: 8rem; }

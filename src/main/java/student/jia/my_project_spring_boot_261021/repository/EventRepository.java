@@ -1,4 +1,5 @@
 package student.jia.my_project_spring_boot_261021.repository;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,5 +30,28 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // 查詢指定狀態的活動，開始時間由近到遠排列
 List<Event> findByStatusOrderByStartAtAsc(String status);
 
-    Page<Event> findByStatus(String status, Pageable pageable);
+    List<Event> findByStatusAndHiddenFromPublicListFalseAndEndAtAfterOrderByStartAtAscIdAsc(
+            String status, LocalDateTime now);
+
+    @Query("""
+            SELECT e FROM Event e
+            WHERE e.status = 'OPEN'
+              AND e.hiddenFromPublicList = false
+              AND e.endAt > :now
+              AND (:keyword IS NULL OR LOWER(e.title) LIKE LOWER(:keyword) ESCAPE '!'
+                   OR LOWER(e.location) LIKE LOWER(:keyword) ESCAPE '!')
+              AND (:startFrom IS NULL OR e.startAt >= :startFrom)
+              AND (:until IS NULL OR e.startAt < :until)
+              AND (:beginnerOnly = false OR e.beginnerFriendly = true)
+              AND (:availableOnly = false OR (
+                  e.registrationDeadline > :now
+                  AND e.capacity > (SELECT COUNT(r) FROM Registration r
+                       WHERE r.eventId = e.id AND r.status = 'REGISTERED')
+              ))
+            """)
+    Page<Event> searchPublic(@Param("keyword") String keyword,
+            @Param("startFrom") LocalDateTime from, @Param("until") LocalDateTime until,
+            @Param("beginnerOnly") boolean beginnerOnly, @Param("availableOnly") boolean availableOnly,
+            @Param("now") LocalDateTime now, Pageable pageable);
+
 }
