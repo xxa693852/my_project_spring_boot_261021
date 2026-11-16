@@ -24,13 +24,14 @@ public class EventResponse {
     private List<String> tags;
     private String status;
     private boolean hiddenFromPublicList;
+    private int registrationFee;
 
     // 新增：查詢時計算的資訊
     private long registeredCount;
     private long remainingSlots;
     private boolean canRegister;
 
-    public EventResponse(Event event, long registeredCount) {
+    public EventResponse(Event event, long registeredCount, long activeHolds, boolean paymentsReady) {
         this.id = event.getId();
         this.title = event.getTitle();
         this.description = event.getDescription();
@@ -42,6 +43,7 @@ public class EventResponse {
         this.capacity = event.getCapacity();
         this.beginnerFriendly = event.isBeginnerFriendly();
         this.coverTheme = event.getCoverTheme();
+        this.registrationFee = event.getRegistrationFee();
         if (event.getCustomTags().isEmpty()) {
             this.tags = List.of();
         } else {
@@ -55,13 +57,14 @@ public class EventResponse {
 
         // 剩餘名額，最低顯示 0
         this.remainingSlots =
-                Math.max(0L, event.getCapacity() - registeredCount);
+                Math.max(0L, event.getCapacity() - registeredCount - activeHolds);
 
         // 活動開放、尚未截止，而且還有名額
         this.canRegister =
                 "OPEN".equals(event.getStatus())
                 && LocalDateTime.now(ZoneId.of("Asia/Taipei")).isBefore(
                         event.getRegistrationDeadline())
+                && (this.registrationFee == 0 || paymentsReady)
                 && this.remainingSlots > 0;
     }
 }

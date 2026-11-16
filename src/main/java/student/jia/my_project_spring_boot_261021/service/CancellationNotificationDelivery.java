@@ -60,6 +60,10 @@ public class CancellationNotificationDelivery {
         String text = "活動「" + pending.title() + "」已取消。原訂時間 "
                 + TIME.format(pending.startAt()) + "（台北時間）。請至「我的報名」查看。";
 
+        // 隨取消通知告知玩家是否有退款需要處理。
+        if (pending.paymentNote() != null) {
+            text += "\n" + pending.paymentNote();
+        }
         Result result = send(member, "D&D 活動取消通知", text);
         queue.finish(pending.id(), result.status(), result.channel(), result.code());
     }

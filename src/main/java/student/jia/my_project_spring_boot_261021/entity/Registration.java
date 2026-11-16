@@ -35,6 +35,11 @@ public class Registration {
     @Column(nullable = false, length = 20)
     private String status = "REGISTERED"; // REGISTERED：已報名；CANCELLED：已取消
 
+    // 只有待付款且期限尚未到的報名才會保留名額。
+    @Column(name = "payment_expires_at")
+    @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
+    private LocalDateTime paymentExpiresAt;
+
     @Column(name = "registered_at", nullable = false)
     @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime registeredAt;

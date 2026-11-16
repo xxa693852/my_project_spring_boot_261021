@@ -82,6 +82,10 @@ public class Event {
     @JdbcTypeCode(SqlTypes.LOCAL_DATE_TIME)
     private LocalDateTime updatedAt;
 
+    // 每位玩家的報名費，單位為新台幣元，0 代表免費。
+    @Column(name = "registration_fee", nullable = false)
+    private int registrationFee;
+
     // JPA 需要的無參數建構子
     protected Event() {
     }

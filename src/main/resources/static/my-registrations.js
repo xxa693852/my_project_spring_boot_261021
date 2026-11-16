@@ -19,7 +19,16 @@ function render(registration) {
     text(card, "h2", registration.eventTitle || "活動資料無法取得");
     text(card, "p", "開始時間：" + (registration.startAt?.replace("T", " ") || "未提供"));
     text(card, "p", "地點：" + (registration.location || "未提供"));
-    const registrationStatuses = { REGISTERED: "已報名", CANCELLED: "已取消報名" };
+    const registrationStatuses = { REGISTERED: "已報名", CANCELLED: "已取消報名",
+        PENDING_PAYMENT: "待付款／等待藍新確認", EXPIRED: "付款保留已逾時" };
+    if (registration.status === "PENDING_PAYMENT") {
+        text(card, "p", "付款期限：" + registration.paymentExpiresAt.replace("T", " ") + "（台北時間）");
+    }
+    const paymentStatuses = { PAID: "已付款", REFUND_PENDING: "待全額退款",
+        REVIEW_REQUIRED: "已收款，待管理員核對", REFUNDED: "已退款", FAILED: "付款失敗" };
+    if (paymentStatuses[registration.paymentStatus]) {
+        text(card, "p", "付款狀態：" + paymentStatuses[registration.paymentStatus]);
+    }
     const eventStatuses = { OPEN: "開放中", CLOSED: "已關閉", CANCELLED: "活動已取消" };
     text(card, "p", "報名狀態：" + (registrationStatuses[registration.status] || "未知"));
     text(card, "p", "活動狀態：" + (eventStatuses[registration.eventStatus] || "資料無法取得"));

@@ -17,7 +17,7 @@ const coverPreview = document.getElementById("event-cover-preview");
 const deliveryLog = document.getElementById("delivery-log");
 const deliveryMessage = document.getElementById("delivery-message");
 const deliveryList = document.getElementById("delivery-list");
-const keys = ["title", "description", "hostName", "location", "startAt", "endAt", "registrationDeadline", "capacity", "beginnerFriendly", "coverTheme", "tags"];
+const keys = ["title", "description", "hostName", "location", "startAt", "endAt", "registrationDeadline", "capacity", "registrationFee", "beginnerFriendly", "coverTheme", "tags"];
 const dateKeys = ["startAt", "endAt", "registrationDeadline"];
 const pastDateMessage = "請選擇今天或之後的日期（台北時間）。";
 let editingId = null, editable = true, busy = false;
@@ -78,6 +78,7 @@ function text(parent, tag, value) {
     const node = document.createElement(tag);
     node.textContent = value;
     parent.append(node);
+    return node;
 }
 function canEdit(event) {
     return event.status === "OPEN" && Date.now() < Date.parse(event.startAt + "+08:00");
@@ -186,7 +187,58 @@ document.getElementById("reload-delivery").addEventListener("click", async () =>
     try { await loadDeliveryLog(editingId); }
     finally { setBusy(false); }
 });
+// 後台只登記已完成的退款，並保存藍新交易編號與處理說明以供對帳。
+async function loadPaymentLog(eventId) {
+    const list = document.getElementById("payment-log-list");
+    const notice = document.getElementById("payment-log-message");
+    list.replaceChildren();
+    notice.textContent = "讀取付款紀錄中……";
+    try {
+        const records = await checked("/admin/events/" + eventId + "/payments");
+        const labels = { INIT: "待付款", PENDING: "待付款", PAID: "已付款",
+            FAILED: "付款失敗", CANCELLED: "已取消", REFUND_PENDING: "待全額退款",
+            REVIEW_REQUIRED: "已收款，待人工核對", REFUNDED: "已退款" };
+        notice.textContent = records.length ? "" : "此活動沒有付款紀錄。";
+        for (const record of records) {
+            const item = text(list, "li", record.merchantOrderNo + " · NT$" +
+                new Intl.NumberFormat("zh-TW").format(record.amount) + " · " + (labels[record.status] || record.status));
+            if (record.providerTradeNo) text(item, "p", "藍新交易編號 " + record.providerTradeNo);
+            if (record.refundNote) text(item, "p", "退款說明 " + record.refundNote + " · " + record.refundedAt.replace("T", " "));
+            if (record.status !== "REFUND_PENDING" && record.status !== "REVIEW_REQUIRED") continue;
+            const note = document.createElement("input");
+            note.setAttribute("aria-label", "退款說明 " + record.merchantOrderNo);
+            note.placeholder = "填寫退款日期與對帳單號";
+            note.maxLength = 255;
+            item.append(note);
+            const button = text(item, "button", "登記已全額退款");
+            button.type = "button";
+            button.addEventListener("click", async () => {
+                if (busy) return;
+                if (!note.value.trim()) {
+                    notice.textContent = "請先填寫退款說明。";
+                    note.focus();
+                    return;
+                }
+                if (!window.confirm("確認已在藍新後台完成全額退款？")) return;
+                setBusy(true);
+                try {
+                    await checked("/admin/events/" + eventId + "/payments/" + record.id + "/refund", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ note: note.value.trim() })
+                    });
+                    await loadPaymentLog(eventId);
+                } catch (error) {
+                    notice.textContent = error.message;
+                } finally { setBusy(false); }
+            });
+        }
+    } catch (error) {
+        notice.textContent = error.message;
+    }
+}
+
 function openForm(event, opener) {
+    document.getElementById("payment-log").hidden = !event;
     clearErrors();
     form.reset();
     editingId = event?.id ?? null;
@@ -219,6 +271,7 @@ async function loadForm(id, opener) {
     try {
         const event = await checked("/admin/events/" + id);
         openForm(event, opener);
+        await loadPaymentLog(id);
         if (event.status === "CANCELLED") await loadDeliveryLog(id);
     }
     catch (error) { message.textContent = error.message; }
@@ -264,7 +317,7 @@ form.addEventListener("submit", async event => {
         const input = form.elements[key];
         body[key] = key === "tags" ? tags
             : key === "beginnerFriendly" ? input.checked
-            : key === "capacity" ? Number(input.value)
+            : (key === "capacity" || key === "registrationFee") ? Number(input.value)
             : key.endsWith("At") || key === "registrationDeadline"
                 ? (input.value.length === 16 ? input.value + ":00" : input.value) : input.value;
     }

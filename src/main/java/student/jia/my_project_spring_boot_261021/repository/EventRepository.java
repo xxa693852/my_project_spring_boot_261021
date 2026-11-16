@@ -44,14 +44,17 @@ List<Event> findByStatusOrderByStartAtAsc(String status);
               AND (:until IS NULL OR e.startAt < :until)
               AND (:beginnerOnly = false OR e.beginnerFriendly = true)
               AND (:availableOnly = false OR (
-                  e.registrationDeadline > :now
+                  (e.registrationFee = 0 OR :paymentsReady = true)
+                  AND e.registrationDeadline > :now
                   AND e.capacity > (SELECT COUNT(r) FROM Registration r
-                       WHERE r.eventId = e.id AND r.status = 'REGISTERED')
+                       WHERE r.eventId = e.id AND (r.status = 'REGISTERED'
+                           OR (r.status = 'PENDING_PAYMENT' AND r.paymentExpiresAt > :now)))
               ))
             """)
     Page<Event> searchPublic(@Param("keyword") String keyword,
             @Param("startFrom") LocalDateTime from, @Param("until") LocalDateTime until,
             @Param("beginnerOnly") boolean beginnerOnly, @Param("availableOnly") boolean availableOnly,
+            @Param("paymentsReady") boolean paymentsReady,
             @Param("now") LocalDateTime now, Pageable pageable);
 
 }

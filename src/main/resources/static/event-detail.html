@@ -12,7 +12,8 @@
     <link rel="stylesheet" href="/event-comments.css?v=4">
     <script src="/page-jump.js?v=1" defer></script>
     <script src="/event-comments.js?v=page-jump" defer></script>
-    <script src="/event-detail.js?v=event-search" defer></script>
+    <script src="/event-fee.js?v=1" defer></script>
+    <script src="/event-detail.js?v=payment-1" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=1">
 </head>
 <body>
@@ -34,6 +35,7 @@
                     <dl id="event-facts" class="event-facts"></dl>
                 </div>
             </article>
+            <p id="registration-fee" hidden></p>
             <section id="registration" aria-label="活動報名" hidden>
                 <p id="registration-status"></p>
                 <div class="actions">
@@ -74,6 +76,15 @@
             </section>
         </div>
     </main>
+    <dialog id="payment-confirmation" class="cancel-registration-dialog" aria-labelledby="payment-title">
+        <form method="dialog">
+            <h2 id="payment-title">確認付費報名</h2>
+            <p id="payment-confirmation-fee"></p>
+            <p>名額最多保留 30 分鐘，若報名先截止，保留也會提早結束。重開付款頁會沿用原期限。</p>
+            <button value="back" autofocus>返回</button>
+            <button value="pay">前往藍新測試付款</button>
+        </form>
+    </dialog>
     <dialog id="delete-comment-dialog" class="cancel-registration-dialog" aria-labelledby="delete-comment-title">
         <form method="dialog">
             <h2 id="delete-comment-title">刪除留言</h2>

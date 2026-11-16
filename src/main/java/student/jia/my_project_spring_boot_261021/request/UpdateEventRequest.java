@@ -43,6 +43,10 @@ public class UpdateEventRequest {
     @Min(value = 1, message = "人數上限至少1人")
     private Integer capacity;
 
+    // 舊版表單省略此欄時，沿用活動已儲存的費用。
+    @Min(value = 0, message = "報名費不得小於 0 元")
+    private Integer registrationFee;
+
     @NotNull(message = "請指定是否新手友善")
     private Boolean beginnerFriendly;
 

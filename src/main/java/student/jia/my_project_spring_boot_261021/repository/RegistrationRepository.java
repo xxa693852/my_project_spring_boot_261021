@@ -20,13 +20,22 @@ public interface RegistrationRepository
     @Query("""
             SELECT e FROM Registration r, Event e
             WHERE r.eventId = e.id AND r.memberId = :memberId
-              AND r.eventId <> :eventId AND r.status = 'REGISTERED' AND e.status = 'OPEN'
+              AND r.eventId <> :eventId AND e.status = 'OPEN'
+              AND (r.status = 'REGISTERED' OR (r.status = 'PENDING_PAYMENT' AND r.paymentExpiresAt > :now))
               AND e.startAt < :endAt AND e.endAt > :startAt
             ORDER BY e.startAt, e.id
             """)
     List<Event> findOverlappingEvents(
             @Param("memberId") Long memberId, @Param("eventId") Long eventId,
-            @Param("startAt") LocalDateTime startAt, @Param("endAt") LocalDateTime endAt);
+            @Param("startAt") LocalDateTime startAt, @Param("endAt") LocalDateTime endAt,
+            @Param("now") LocalDateTime now);
+
+    // 只計入尚在期限內的保留，逾時後下一次查詢就能讓出名額。
+    @Query("""
+            SELECT COUNT(r) FROM Registration r WHERE r.eventId = :eventId
+              AND r.status = 'PENDING_PAYMENT' AND r.paymentExpiresAt > :now
+            """)
+    long countActiveHolds(@Param("eventId") Long eventId, @Param("now") LocalDateTime now);
 
     // 取消整場活動時，查出仍有效的報名，逐筆更新狀態與取消時間。
     List<Registration> findByEventIdAndStatus(Long eventId, String status);

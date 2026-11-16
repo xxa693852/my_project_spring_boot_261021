@@ -19,7 +19,7 @@ class RegistrationHistoryTests {
     private final RegistrationRepository registrations = mock(RegistrationRepository.class);
     private final EventRepository events = mock(EventRepository.class);
     private final RegistrationService service = new RegistrationService(
-            registrations, mock(MemberRepository.class), events);
+            registrations, mock(MemberRepository.class), events, mock(student.jia.my_project_spring_boot_261021.repository.PaymentRepository.class));
 
     private Event event(long id, String status, LocalDateTime deadline) {
         Event event = new Event("History event " + id, "Description", "Host", "Taipei",

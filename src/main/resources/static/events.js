@@ -56,6 +56,9 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     const status = registrationStatus(event);
     const badge = addText(heading, "span", status, status === "可報名" ? "event-status event-status-open" : "event-status");
     body.append(heading);
+    const fee = document.createElement("p");
+    showEventFee(fee, event.registrationFee);
+    body.append(fee);
     addText(body, "p", "活動時間　" + eventSchedule(event), "event-meta event-schedule");
     addText(body, "p", "報名截止　" + eventTime(event.registrationDeadline), "event-meta");
     const locationLink = createEventMapLink(event.location, event.location);
@@ -102,6 +105,7 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     feedback.setAttribute("role", "status");
     let busy = false;
     let isRegistered = registration?.status === "REGISTERED";
+    const hasHold = registration?.status === "PENDING_PAYMENT";
     const returnParams = listParams(page);
     returnParams.set("event", event.id);
     const returnUrl = "/events.html?" + returnParams;
@@ -112,7 +116,10 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
         badge.textContent = status;
         badge.classList.toggle("event-status-open", status === "可報名");
         slots.textContent = "剩餘名額 " + event.remainingSlots + " / " + event.capacity;
-        register.hidden = !registrationStatusKnown || isRegistered || status !== "可報名";
+        register.hidden = !registrationStatusKnown || isRegistered || (!hasHold && status !== "可報名");
+        if (event.registrationFee > 0) {
+            register.textContent = hasHold ? "繼續付款" : "查看費用並報名";
+        }
         registered.hidden = !isRegistered;
         cancel.hidden = !isRegistered || event.status !== "OPEN"
             || !(Date.now() < Date.parse(event.registrationDeadline + "+08:00"));
@@ -172,7 +179,14 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
         }
     }
 
-    register.addEventListener("click", () => changeRegistration("POST"));
+    register.addEventListener("click", () => {
+        // 先到詳情確認費用與保留規則，再開啟測試付款頁。
+        if (event.registrationFee > 0) {
+            location.assign(link.href);
+            return;
+        }
+        changeRegistration("POST");
+    });
     cancel.addEventListener("click", () => changeRegistration("DELETE"));
     updateActions();
     card.append(cover, body);

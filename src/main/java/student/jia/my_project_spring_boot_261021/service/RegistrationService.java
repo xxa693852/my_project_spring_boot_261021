@@ -1,6 +1,10 @@
 package student.jia.my_project_spring_boot_261021.service;
 
 import org.springframework.stereotype.Service;
+import student.jia.my_project_spring_boot_261021.entity.Payment;
+import student.jia.my_project_spring_boot_261021.repository.PaymentRepository;
+import student.jia.my_project_spring_boot_261021.constant.PaymentStatus;
+import java.util.UUID;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
@@ -29,11 +33,25 @@ public class RegistrationService {
     private final RegistrationRepository registrationRepository;
     private final MemberRepository memberRepository;
     private final EventRepository eventRepository;
+    private final PaymentRepository payments;
+
+    private RegistrationResponse registrationResponse(Registration registration, Event event) {
+        Optional<Payment> payment = payments.findFirstByRegistrationIdOrderByIdDesc(registration.getId());
+        String status = null;
+        if (payment.isPresent()) {
+            status = payment.get().getPaymentStatus();
+        }
+        return new RegistrationResponse(registration, event, status);
+    }
+
+    // 回傳同一筆交易內取得的訂單與期限，避免重新讀取時混到另一筆付款。
+    public record PaymentReservation(Payment payment, LocalDateTime expiresAt) {}
 
     public RegistrationService(
             RegistrationRepository registrationRepository,
             MemberRepository memberRepository,
-            EventRepository eventRepository) {
+            EventRepository eventRepository, PaymentRepository payments) {
+        this.payments = payments;
 
         this.registrationRepository = registrationRepository;
         this.memberRepository = memberRepository;
@@ -43,6 +61,16 @@ public class RegistrationService {
     //活動報名
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void register(Long memberId, Long eventId) {
+        register(memberId, eventId, null, null);
+    }
+
+    // 只有付款入口會傳入商店編號。免費 API 仍只接受免費場次。
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public PaymentReservation reserveForPayment(Long memberId, Long eventId, String merchantId, Integer expectedFee) {
+        return register(memberId, eventId, merchantId, expectedFee);
+    }
+
+    private PaymentReservation register(Long memberId, Long eventId, String merchantId, Integer expectedFee) {
     // 1. 鎖定會員，讓同一會員同時送出的報名依序檢查
     Optional<Member> member =
             memberRepository.findActiveByIdForUpdate(memberId);
@@ -85,6 +113,17 @@ public class RegistrationService {
         }
 
         // 5. 查詢這位會員對這場活動的報名紀錄
+        if (merchantId == null && targetEvent.getRegistrationFee() > 0) {
+            throw new IllegalArgumentException("請從付費報名入口開始付款。");
+        }
+        if (merchantId != null && targetEvent.getRegistrationFee() == 0) {
+            throw new IllegalArgumentException("此活動免費，請直接報名。");
+        }
+        // 使用者確認後若費用有變動，請他重新看價格再決定是否付款。
+        if (merchantId != null && (expectedFee == null || expectedFee != targetEvent.getRegistrationFee())) {
+            throw new IllegalArgumentException("報名費已變更，請確認新金額再付款。");
+        }
+
         Optional<Registration> existingRegistration =
                 registrationRepository.findByMemberIdAndEventId(
                         memberId, eventId);
@@ -97,18 +136,27 @@ public class RegistrationService {
                     ResponseMessages.EVENT_REGISTERED_REPEAT);
         }
 
+        // 重開付款頁沿用原訂單與期限，不再多占一席，也不重新計時。
+        if (merchantId != null && existingRegistration.isPresent()) {
+            Registration previous = existingRegistration.get();
+            if ("PENDING_PAYMENT".equals(previous.getStatus()) && now.isBefore(previous.getPaymentExpiresAt())) {
+                Payment payment = payments.findFirstByRegistrationIdOrderByIdDesc(previous.getId()).orElseThrow();
+                return new PaymentReservation(payment, previous.getPaymentExpiresAt());
+            }
+        }
+
         // 6. 檢查活動名額
         long registeredCount =
                 registrationRepository.countByEventIdAndStatus(
                         eventId, "REGISTERED");
 
-        if (registeredCount >= targetEvent.getCapacity()) {
+        if (registeredCount + registrationRepository.countActiveHolds(eventId, now) >= targetEvent.getCapacity()) {
             throw new IllegalArgumentException(
                     ResponseMessages.EVENT_FULL);
         }
 
         List<Event> overlappingEvents = registrationRepository.findOverlappingEvents(
-                memberId, eventId, targetEvent.getStartAt(), targetEvent.getEndAt());
+                memberId, eventId, targetEvent.getStartAt(), targetEvent.getEndAt(), now);
         if (!overlappingEvents.isEmpty()) {
             throw new RegistrationConflictException(overlappingEvents);
         }
@@ -132,7 +180,23 @@ public class RegistrationService {
         }
 
         // 8. 儲存報名紀錄
-        registrationRepository.save(registration);
+        if (merchantId == null) {
+            registration.setPaymentExpiresAt(null);
+            registrationRepository.save(registration);
+            return null;
+        }
+
+        // 保留期限取 30 分鐘與報名截止中較早的一個，並和付款紀錄一起提交。
+        LocalDateTime expiresAt = now.plusMinutes(30);
+        if (targetEvent.getRegistrationDeadline().isBefore(expiresAt)) {
+            expiresAt = targetEvent.getRegistrationDeadline();
+        }
+        registration.setStatus("PENDING_PAYMENT");
+        registration.setPaymentExpiresAt(expiresAt);
+        Registration saved = registrationRepository.save(registration);
+        String orderNo = "DND" + UUID.randomUUID().toString().replace("-", "").substring(0, 27);
+        Payment payment = payments.save(new Payment(saved.getId(), orderNo, merchantId, targetEvent.getRegistrationFee()));
+        return new PaymentReservation(payment, expiresAt);
     }
 
     // 查詢自己對某一場活動的報名紀錄，包含已取消的紀錄
@@ -157,7 +221,7 @@ public class RegistrationService {
         event = optionalEvent.get();
     }
     // 維持原本行為：活動不存在時仍回傳報名紀錄，活動相關欄位由回應物件處理。
-    return new RegistrationResponse(targetRegistration, event);
+    return registrationResponse(targetRegistration, event);
     }
 
    // 查詢自己的全部報名紀錄，包含已取消的紀錄
@@ -187,7 +251,7 @@ public class RegistrationService {
         List<RegistrationResponse> responses = new ArrayList<>();
         for (Registration registration : registrations) {
             Event event = eventsById.get(registration.getEventId());
-            RegistrationResponse response = new RegistrationResponse(registration, event);
+            RegistrationResponse response = registrationResponse(registration, event);
             responses.add(response);
         }
         // 原本 Stream.toList() 的結果不能被增刪，這裡也保留相同限制。
@@ -238,6 +302,8 @@ public class RegistrationService {
         // 5. 修改狀態與取消時間
         targetRegistration.setStatus("CANCELLED");
         targetRegistration.setCancelledAt(now);
+        // 已收款只標記待退款。待付款則關閉本次訂單，晚到的成功通知仍會入帳。
+        PaymentLifecycle.cancelLatest(payments, targetRegistration.getId());
 
 
     

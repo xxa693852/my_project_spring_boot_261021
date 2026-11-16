@@ -15,7 +15,7 @@ import lombok.Setter;
 @Getter
 @Setter 
 public class CreateEventRequest {
-    
+
     @NotBlank(message = "活動名稱不能空白")
     @Size(max = 100, message = "活動名稱最多100字")
     private String title;
@@ -39,7 +39,7 @@ public class CreateEventRequest {
 
     @NotNull(message = "報名截止時間不能空白")
     private LocalDateTime registrationDeadline;
-    
+
     @NotNull(message = "人數上限不能空白")
     @Min(value = 1, message = "人數上限至少1人")
     private Integer capacity;
@@ -54,6 +54,11 @@ public class CreateEventRequest {
     private List<@NotBlank(message = "自訂標籤不能空白")
             @Size(max = 16, message = "每個自訂標籤最多 16 字")
             @Pattern(regexp = "[^\\r\\n]+", message = "自訂標籤不能包含換行") String> tags;
+
+    // 單位為新台幣元。省略或傳入 null 時，由 Service 依免費活動處理。
+    @Min(value = 0, message = "報名費不得小於 0 元")
+    private Integer registrationFee;
+
 
 }
 // 欄位	Java 型別	驗證

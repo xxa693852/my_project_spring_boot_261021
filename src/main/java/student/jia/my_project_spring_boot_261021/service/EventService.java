@@ -38,12 +38,17 @@ public class EventService {
     private final MemberRepository memberRepository;
     private final RegistrationRepository registrationRepository;
     private final CancellationNotificationQueue notificationQueue;
+    private final NewebPayService newebPay;
+    private final student.jia.my_project_spring_boot_261021.repository.PaymentRepository payments;
 
     public EventService(
             EventRepository eventRepository,
             MemberRepository memberRepository,
             RegistrationRepository registrationRepository,
-            CancellationNotificationQueue notificationQueue) {
+            CancellationNotificationQueue notificationQueue, NewebPayService newebPay,
+            student.jia.my_project_spring_boot_261021.repository.PaymentRepository payments) {
+        this.newebPay = newebPay;
+        this.payments = payments;
 
         this.eventRepository = eventRepository;
         this.memberRepository = memberRepository;
@@ -108,6 +113,11 @@ public class EventService {
             operator.getId()
             );
 
+            // 舊版表單可能省略報名費。Event 的 int 預設為 0，代表免費。
+            Integer registrationFee = request.getRegistrationFee();
+            if (registrationFee != null) {
+                event.setRegistrationFee(registrationFee);
+            }
             updatePresentation(event, request.getCoverTheme(), request.getTags());
             return eventRepository.save(event);
         
@@ -254,12 +264,24 @@ public class EventService {
                         eventId, "REGISTERED");
 
         // 可以改成剛好等於報名人數，但不能更少
-        if (request.getCapacity() < registeredCount) {
+        if (request.getCapacity() < registeredCount + registrationRepository.countActiveHolds(eventId, now)) {
             throw new IllegalArgumentException(
                     "人數上限不能小於目前已報名人數");
         }
 
         // 7. 所有條件通過後，修改原本那筆活動
+        // 保留期間固定費用與時段，讓已簽發的付款表單仍對應同一個條件。
+        if (registrationRepository.countActiveHolds(eventId, now) > 0
+                && (!start.equals(targetEvent.getStartAt()) || !end.equals(targetEvent.getEndAt())
+                || !deadline.equals(targetEvent.getRegistrationDeadline())
+                || (request.getRegistrationFee() != null
+                && request.getRegistrationFee() != targetEvent.getRegistrationFee()))) {
+            throw new IllegalArgumentException("仍有待付款報名，暫時無法修改費用或時段。");
+        }
+        if (registeredCount > 0 && request.getRegistrationFee() != null
+                && request.getRegistrationFee() != targetEvent.getRegistrationFee()) {
+            throw new IllegalArgumentException("已有確認報名，無法修改報名費。");
+        }
         targetEvent.setTitle(request.getTitle().trim());
         targetEvent.setDescription(request.getDescription().trim());
         targetEvent.setHostName(request.getHostName().trim());
@@ -268,6 +290,9 @@ public class EventService {
         targetEvent.setEndAt(end);
         targetEvent.setRegistrationDeadline(deadline);
         targetEvent.setCapacity(request.getCapacity());
+        if (request.getRegistrationFee() != null) {
+            targetEvent.setRegistrationFee(request.getRegistrationFee());
+        }
         targetEvent.setBeginnerFriendly(request.getBeginnerFriendly());
         updatePresentation(targetEvent, request.getCoverTheme(), request.getTags());
 
@@ -327,10 +352,18 @@ public class EventService {
                         eventId, "REGISTERED");
 
         // 6. 取消所有有效報名，並記錄這次取消的時間。
+        registrations = new ArrayList<>(registrations);
+        registrations.addAll(registrationRepository.findByEventIdAndStatus(eventId, "PENDING_PAYMENT"));
         for (Registration registration : registrations) {
+            boolean notify = !"PENDING_PAYMENT".equals(registration.getStatus())
+                    || now.isBefore(registration.getPaymentExpiresAt());
             registration.setStatus("CANCELLED");
             registration.setCancelledAt(now);
-            notificationQueue.enqueue(targetEvent, registration.getMemberId());
+            registration.setPaymentExpiresAt(null);
+            String paymentNote = PaymentLifecycle.cancelLatest(payments, registration.getId());
+            if (notify) {
+                notificationQueue.enqueue(targetEvent, registration.getMemberId(), paymentNote);
+            }
         }
 
         // 7. 取消活動本身，避免活動維持 OPEN 而繼續接受報名。
@@ -372,7 +405,7 @@ public class EventService {
             until = through.plusDays(1).atStartOfDay();
         }
         Page<Event> matches = eventRepository.searchPublic(pattern, startFrom, until,
-                beginnerOnly, availableOnly, LocalDateTime.now(ZoneId.of("Asia/Taipei")), pageRequest);
+                beginnerOnly, availableOnly, newebPay.isReady(), LocalDateTime.now(ZoneId.of("Asia/Taipei")), pageRequest);
         return toEventPageResponse(matches, page);
     }
 
@@ -440,7 +473,8 @@ public class EventService {
                 registrationRepository.countByEventIdAndStatus(
                         event.getId(), "REGISTERED");
 
-        return new EventResponse(event, registeredCount);
+        long activeHolds = registrationRepository.countActiveHolds(event.getId(), PaymentLifecycle.now());
+        return new EventResponse(event, registeredCount, activeHolds, newebPay.isReady());
     }
 
 }

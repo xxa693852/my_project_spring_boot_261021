@@ -24,25 +24,25 @@ public class CancellationNotificationQueue {
         return enabled;
     }
 
-    public void enqueue(Event event, Long memberId) {
+    public void enqueue(Event event, Long memberId, String paymentNote) {
         if (!enabled) {
             return;
         }
         // JDBC 與取消活動共用交易，提交成功後排程才會看到通知。
         jdbc.update("""
                 INSERT INTO event_cancellation_notifications
-                    (event_id, member_id, event_title, event_start_at)
-                VALUES (?, ?, ?, ?)
-                """, event.getId(), memberId, event.getTitle(), event.getStartAt());
+                    (event_id, member_id, event_title, event_start_at, payment_note)
+                VALUES (?, ?, ?, ?, ?)
+                """, event.getId(), memberId, event.getTitle(), event.getStartAt(), paymentNote);
     }
 
     public List<Pending> pending() {
         return jdbc.query("""
-                SELECT id, member_id, event_title, event_start_at
+                SELECT id, member_id, event_title, event_start_at, payment_note
                 FROM event_cancellation_notifications
                 WHERE status = 'PENDING' ORDER BY id LIMIT 20
                 """, (row, index) -> new Pending(row.getLong("id"), row.getLong("member_id"),
-                row.getString("event_title"), row.getObject("event_start_at", LocalDateTime.class)));
+                row.getString("event_title"), row.getObject("event_start_at", LocalDateTime.class), row.getString("payment_note")));
     }
 
     public boolean claim(long id) {
@@ -71,7 +71,7 @@ public class CancellationNotificationQueue {
                 row.getObject("updated_at", LocalDateTime.class)), eventId);
     }
 
-    record Pending(long id, long memberId, String title, LocalDateTime startAt) {}
+    record Pending(long id, long memberId, String title, LocalDateTime startAt, String paymentNote) {}
 
     public record Delivery(long memberId, String status, String channel, String resultCode,
             LocalDateTime updatedAt) {}

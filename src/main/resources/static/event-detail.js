@@ -63,6 +63,18 @@ function showLogin(text) {
     login.hidden = false;
 }
 
+let currentFee = 0;
+const paymentDialog = document.getElementById("payment-confirmation");
+
+function confirmEventPayment() {
+    showEventFee(document.getElementById("payment-confirmation-fee"), currentFee);
+    paymentDialog.returnValue = "";
+    paymentDialog.showModal();
+    return new Promise(resolve => {
+        paymentDialog.addEventListener("close", () => resolve(paymentDialog.returnValue === "pay"), { once: true });
+    });
+}
+
 async function loadEvent() {
     register.hidden = cancel.hidden = login.hidden = true;
     section.hidden = true;
@@ -77,6 +89,12 @@ async function loadEvent() {
             ? "找不到這個活動。" : "無法載入活動，請稍後再試。");
         const event = await response.json();
         showEvent(event);
+        currentFee = event.registrationFee;
+        const fee = document.getElementById("registration-fee");
+        showEventFee(fee, currentFee);
+        fee.hidden = false;
+        register.textContent = currentFee > 0 ? "付費報名" : "報名活動";
+        register.hidden = cancel.hidden = true;
         message.textContent = "";
         window.loadEventComments(eventId);
         if (event.status === "CANCELLED") return;
@@ -96,7 +114,14 @@ async function loadEvent() {
             throw new Error(await DndAuth.errorMessage(own, "無法取得報名狀態。"));
         }
         const registration = own.status === 404 ? null : await own.json();
-        if (registration?.status === "REGISTERED") {
+        if (registration?.status === "PENDING_PAYMENT") {
+            statusText.textContent = "待付款，保留至 " + registration.paymentExpiresAt.replace("T", " ") + "（台北時間）";
+            register.textContent = "繼續付款";
+            register.hidden = false;
+            cancel.hidden = !registration.canCancel;
+            cancel.textContent = "放棄付款";
+        } else if (registration?.status === "REGISTERED") {
+            cancel.textContent = "取消報名";
             statusText.textContent = "你已報名這場活動。";
             // Server timestamps are Taipei local time.
             const deadline = Date.parse(event.registrationDeadline + "+08:00");
@@ -116,15 +141,22 @@ async function loadEvent() {
     }
 }
 async function changeRegistration(method) {
-    if (busy) return;
+    if (busy || paymentDialog.open) return;
     if (method === "DELETE" && !await confirmRegistrationCancellation(title.textContent)) return;
+    if (method === "POST" && currentFee > 0 && !await confirmEventPayment()) return;
     busy = true;
+    let redirecting = false;
     register.disabled = cancel.disabled = true;
     actionMessage.textContent = "處理中……";
     try {
         const path = method === "POST" ? "/registration?eventId=" + eventId
             : "/registration/events/" + eventId;
-        const response = await DndAuth.request(path, { method });
+        const paid = method === "POST" && currentFee > 0;
+        const response = paid ? await openEventPayment(eventId, currentFee) : await DndAuth.request(path, { method });
+        if (paid && response.ok) {
+            redirecting = true;
+            return;
+        }
         if (!response.ok) {
             if (method === "POST" && await showRegistrationConflict(response, actionMessage)) return;
             throw new Error(await DndAuth.errorMessage(response,
@@ -136,7 +168,7 @@ async function changeRegistration(method) {
     } catch (error) {
         actionMessage.textContent = error.message;
     } finally {
-        await loadEvent();
+        if (!redirecting) await loadEvent();
         register.disabled = cancel.disabled = false;
         busy = false;
     }

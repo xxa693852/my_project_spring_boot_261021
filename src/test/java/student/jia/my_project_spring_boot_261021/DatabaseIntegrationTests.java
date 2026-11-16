@@ -1,6 +1,15 @@
 package student.jia.my_project_spring_boot_261021;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import student.jia.my_project_spring_boot_261021.service.NewebPayService;
+import student.jia.my_project_spring_boot_261021.service.PaymentLifecycle;
+import student.jia.my_project_spring_boot_261021.repository.PaymentRepository;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +76,104 @@ class DatabaseIntegrationTests {
     @Autowired private EventRepository events;
     @Autowired private RegistrationRepository registrations;
     @Autowired private AuthTokenRepository tokens;
+
+    @Autowired private PaymentRepository payments;
+    @Autowired private PaymentLifecycle paymentLifecycle;
+    private static final String TEST_MERCHANT = "MSDEMO";
+    private static final String TEST_KEY = "00000000000000000000000000000000";
+    private static final String TEST_IV = "0000000000000000";
+
+    @Test
+    void paymentHoldRepeatsWithoutExtensionAndExpiresWithoutOverselling() throws Exception {
+        Member first = createMember();
+        Member second = createMember();
+        Event event = createEvent(first.getId(), 1);
+        event.setRegistrationFee(350);
+        reloadFromDatabase();
+
+        var firstHold = registrationService.reserveForPayment(first.getId(), event.getId(), TEST_MERCHANT, 350);
+        var reopened = registrationService.reserveForPayment(first.getId(), event.getId(), TEST_MERCHANT, 350);
+        assertEquals(firstHold.payment().getMerchantOrderNo(), reopened.payment().getMerchantOrderNo());
+        assertEquals(firstHold.expiresAt(), reopened.expiresAt());
+        assertThrows(IllegalArgumentException.class,
+                () -> registrationService.reserveForPayment(second.getId(), event.getId(), TEST_MERCHANT, 350));
+
+        Event overlapping = createEvent(first.getId(), 1);
+        overlapping.setStartAt(event.getStartAt());
+        overlapping.setEndAt(event.getEndAt());
+        reloadFromDatabase();
+        assertThrows(student.jia.my_project_spring_boot_261021.exception.RegistrationConflictException.class,
+                () -> registrationService.register(first.getId(), overlapping.getId()));
+
+        // 模擬逾時，讓下一個玩家取得最後一席。舊訂單晚到只留下對帳紀錄。
+        Registration expired = registrations.findById(firstHold.payment().getRegistrationId()).orElseThrow();
+        expired.setPaymentExpiresAt(LocalDateTime.now(ZoneId.of("Asia/Taipei")).minusSeconds(1));
+        reloadFromDatabase();
+        assertEquals("EXPIRED", registrationService.findEventById(first.getId(), event.getId()).getStatus());
+        var secondHold = registrationService.reserveForPayment(second.getId(), event.getId(), TEST_MERCHANT, 350);
+        deliverTestPayment(firstHold.payment().getMerchantOrderNo(), 350, "TRADELATE", "SUCCESS");
+        reloadFromDatabase();
+        assertEquals("REVIEW_REQUIRED", payments.findByMerchantOrderNo(firstHold.payment().getMerchantOrderNo())
+                .orElseThrow().getPaymentStatus());
+        assertEquals(0, registrations.countByEventIdAndStatus(event.getId(), "REGISTERED"));
+        deliverTestPayment(secondHold.payment().getMerchantOrderNo(), 350, "TRADEFAIL", "FAILURE");
+        reloadFromDatabase();
+        assertEquals("FAILED", payments.findByMerchantOrderNo(secondHold.payment().getMerchantOrderNo())
+                .orElseThrow().getPaymentStatus());
+        assertEquals("CANCELLED", registrationService.findEventById(second.getId(), event.getId()).getStatus());
+    }
+
+    @Test
+    void verifiedPaymentConfirmsOnceAndCancellationRecordsFullRefund() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        Member player = createMember();
+        Event event = createEvent(admin.getId(), 1);
+        event.setRegistrationFee(1200);
+        LocalDateTime deadline = LocalDateTime.now(ZoneId.of("Asia/Taipei")).plusMinutes(10).withNano(0);
+        event.setRegistrationDeadline(deadline);
+        reloadFromDatabase();
+        var hold = registrationService.reserveForPayment(player.getId(), event.getId(), TEST_MERCHANT, 1200);
+        assertEquals(deadline, hold.expiresAt());
+        String orderNo = hold.payment().getMerchantOrderNo();
+        assertThrows(IllegalArgumentException.class, () -> testGateway().handleNotify("00", "0".repeat(64)));
+
+        // 先確認金額不符會被擋，再執行有效通知與重送。這段未呼叫藍新網路服務。
+        assertThrows(IllegalArgumentException.class, () -> deliverTestPayment(orderNo, 1, "TRADEOK", "SUCCESS"));
+        deliverTestPayment(orderNo, 1200, "TRADEOK", "SUCCESS");
+        deliverTestPayment(orderNo, 1200, "TRADEOK", "SUCCESS");
+        reloadFromDatabase();
+        assertEquals(1, registrations.countByEventIdAndStatus(event.getId(), "REGISTERED"));
+        registrationService.cancel(player.getId(), event.getId());
+        reloadFromDatabase();
+        assertEquals("REFUND_PENDING", payments.findByMerchantOrderNo(orderNo).orElseThrow().getPaymentStatus());
+        paymentLifecycle.recordRefund(admin.getId(), event.getId(), hold.payment().getId(), "測試退款");
+        reloadFromDatabase();
+        assertEquals("REFUNDED", payments.findByMerchantOrderNo(orderNo).orElseThrow().getPaymentStatus());
+    }
+
+    private NewebPayService testGateway() {
+        return new NewebPayService(registrationService, paymentLifecycle, TEST_MERCHANT, TEST_KEY,
+                TEST_IV, "https://example.com");
+    }
+
+    private void deliverTestPayment(String orderNo, int amount, String tradeNo, String result) throws Exception {
+        String plain = "Status=" + result + "&MerchantID=" + TEST_MERCHANT + "&Amt=" + amount
+                + "&TradeNo=" + tradeNo + "&MerchantOrderNo=" + orderNo + "&RespondCode=00&PaymentType=CREDIT";
+        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(TEST_KEY.getBytes(StandardCharsets.UTF_8), "AES"),
+                new IvParameterSpec(TEST_IV.getBytes(StandardCharsets.UTF_8)));
+        byte[] bytes = plain.getBytes(StandardCharsets.UTF_8);
+        int padding = 32 - bytes.length % 32;
+        byte[] padded = java.util.Arrays.copyOf(bytes, bytes.length + padding);
+        java.util.Arrays.fill(padded, bytes.length, padded.length, (byte) padding);
+        String info = HexFormat.of().formatHex(cipher.doFinal(padded));
+        String input = "HashKey=" + TEST_KEY + "&" + info + "&HashIV=" + TEST_IV;
+        String sha = HexFormat.of().withUpperCase().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(input.getBytes(StandardCharsets.UTF_8)));
+        testGateway().handleNotify(info, sha);
+    }
 
     private MockMvc mvc;
     private final List<Long> createdMemberIds = new ArrayList<>();

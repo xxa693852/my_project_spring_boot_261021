@@ -26,7 +26,7 @@ class CancellationNotificationDeliveryTests {
     @BeforeEach
     void prepareQueue() {
         when(queue.isEnabled()).thenReturn(true);
-        when(queue.pending()).thenReturn(List.of(new Pending(1L, 2L, "QA", LocalDateTime.of(2027, 1, 1, 12, 0))));
+        when(queue.pending()).thenReturn(List.of(new Pending(1L, 2L, "QA", LocalDateTime.of(2027, 1, 1, 12, 0), null)));
         when(queue.claim(1L)).thenReturn(true);
         when(members.findByIdAndStatus(2L, "ACTIVE")).thenReturn(Optional.of(member));
     }

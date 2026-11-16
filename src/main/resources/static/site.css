@@ -318,3 +318,16 @@ html:has(.cancel-registration-dialog[open]) { overflow: hidden; }
 #member-dialog::backdrop { background: rgb(20 39 31 / 62%); }
 .member-dialog-content { padding: 1.25rem; }
 .member-dialog-content select { display: block; max-width: 100%; font: inherit; padding: .5rem; }
+
+/* 費用同時用文字、顏色與外框區分，列表與報名區共用。 */
+.event-fee {
+    display: inline-block;
+    padding: .45rem .75rem;
+    border: 2px solid currentColor;
+    border-radius: .55rem;
+    font-size: 1.15rem;
+    font-weight: 750;
+    margin: .4rem 0;
+}
+.event-fee-free { color: #205b3d; background: #ebf8ef; }
+.event-fee-paid { color: #784706; background: #fff2cf; }

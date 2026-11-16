@@ -23,12 +23,25 @@ public class RegistrationResponse {
     private String eventStatus;
     private LocalDateTime registrationDeadline;
     private boolean canCancel;
+    private LocalDateTime paymentExpiresAt;
+    private String paymentStatus;
 
     public RegistrationResponse(Registration registration, Event event) {
+        this(registration, event, null);
+    }
+
+    public RegistrationResponse(Registration registration, Event event, String paymentStatus) {
+        this.paymentStatus = paymentStatus;
         this.registrationId = registration.getId();
         this.memberId = registration.getMemberId();
         this.eventId = registration.getEventId();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
         this.status = registration.getStatus();
+        this.paymentExpiresAt = registration.getPaymentExpiresAt();
+        // 查詢時即可顯示逾期，無須等待背景排程寫入狀態。
+        if ("PENDING_PAYMENT".equals(this.status) && !now.isBefore(paymentExpiresAt)) {
+            this.status = "EXPIRED";
+        }
         this.registeredAt = registration.getRegisteredAt();
         this.cancelledAt = registration.getCancelledAt();
         if (event != null) {
@@ -38,8 +51,8 @@ public class RegistrationResponse {
             this.eventStatus = event.getStatus();
             this.registrationDeadline = event.getRegistrationDeadline();
             // The server remains the authority for cancellation eligibility.
-            this.canCancel = "REGISTERED".equals(registration.getStatus())
-                    && LocalDateTime.now(ZoneId.of("Asia/Taipei")).isBefore(event.getRegistrationDeadline());
+            this.canCancel = ("REGISTERED".equals(this.status) || "PENDING_PAYMENT".equals(this.status))
+                    && now.isBefore(event.getRegistrationDeadline());
         }
     }
 }
