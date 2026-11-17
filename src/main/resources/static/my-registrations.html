@@ -8,7 +8,11 @@
     <script src="/auth.js?v=member-admin" defer></script>
     <script src="/line-notification-prompt.js?v=2.5.1" defer></script>
     <script src="/cancel-registration-dialog.js?v=centered-cancel" defer></script>
-    <script src="/my-registrations.js?payment=1&v=activity-comments" defer></script>
+    <link rel="stylesheet" href="/event-search.css?v=1">
+    <link rel="stylesheet" href="/page-jump.css?v=1">
+    <script src="/page-jump.js?v=1" defer></script>
+    <script src="/my-registrations.js?v=search-pagination" defer></script>
+    <script src="/search-history.js?v=1" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -23,7 +27,31 @@
         <p id="message" role="status" aria-live="polite">報名紀錄載入中……</p>
         <button id="retry" type="button" hidden>重新載入</button>
         <p id="action-message" role="status" aria-live="polite"></p>
+        <form id="registration-search" autocomplete="off" data-search-history="dnd-registration-search-history" class="event-search" role="search" hidden>
+            <div class="event-search-fields">
+                <div>
+                    <label for="registration-keyword">關鍵字</label>
+                    <input id="registration-keyword" name="keyword" type="search" placeholder="活動名稱或地點" autocomplete="off" list="registration-search-history">
+                    <datalist id="registration-search-history"></datalist>
+                </div>
+            </div>
+            <div class="event-search-options">
+                <label><input name="cancelableOnly" type="checkbox"> 只看可取消的報名</label>
+                <button type="submit">搜尋</button>
+                <button id="clear-registration-search" type="button">清除條件</button>
+            </div>
+        </form>
         <div id="registration-list"></div>
+        <nav id="registration-pagination" class="public-pagination" aria-label="報名紀錄分頁" hidden>
+            <button id="registration-previous" type="button">上一頁</button>
+            <span class="page-numbers"></span>
+            <button id="registration-next" type="button">下一頁</button>
+            <form class="page-jump">
+                <label for="registration-jump-page">跳到第幾頁</label>
+                <input id="registration-jump-page" type="number" min="1" step="1" required>
+                <button type="submit">前往</button>
+            </form>
+        </nav>
     </main>
 </body>
 </html>

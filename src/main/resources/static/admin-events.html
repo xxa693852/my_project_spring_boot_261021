@@ -10,7 +10,9 @@
     <script src="/taipei-date-picker.js?v=1" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=2">
     <script src="/page-jump.js?v=1" defer></script>
-    <script src="/admin-events.js?v=payment-1" defer></script>
+    <link rel="stylesheet" href="/event-search.css?v=1">
+    <script src="/admin-events.js?v=filters" defer></script>
+    <script src="/search-history.js?v=1" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -94,6 +96,21 @@
                 </form>
             </dialog>
             <h2>全部活動</h2>
+            <form id="admin-event-search" autocomplete="off" data-search-history="dnd-admin-event-search-history" class="event-search" role="search">
+                <div class="event-search-fields">
+                    <div>
+                        <label for="admin-event-keyword">關鍵字</label>
+                        <input type="search" id="admin-event-keyword" name="keyword" maxlength="100"
+                               placeholder="活動名稱、地點或主持人" autocomplete="off" list="admin-event-search-history">
+                    <datalist id="admin-event-search-history"></datalist>
+                    </div>
+                </div>
+                <div class="event-search-options">
+                    <label><input type="checkbox" name="editableOnly"> 只看可修改</label>
+                    <button type="submit">搜尋</button>
+                    <button id="clear-admin-event-search" type="button">清除條件</button>
+                </div>
+            </form>
             <div id="event-list"></div>
             <nav id="event-pagination" aria-label="活動列表分頁" hidden>
                 <button id="previous-page" type="button">上一頁</button>

@@ -88,8 +88,10 @@ public class EventController {
     @GetMapping("/page")
     public EventPageResponse findPage(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
-            @RequestParam(name = "page", defaultValue = "1") int page) {
-        return eventService.findAdminPage(memberId, page);
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "editableOnly", defaultValue = "false") boolean editableOnly) {
+        return eventService.findAdminPage(memberId, page, keyword, editableOnly);
     }
 
     // GET /admin/events/1

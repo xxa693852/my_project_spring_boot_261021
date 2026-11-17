@@ -153,6 +153,12 @@ document.getElementById("member-search").addEventListener("submit", event => {
     query = document.getElementById("member-query").value.trim();
     refresh(1);
 });
+document.getElementById("clear-member-search").addEventListener("click", () => {
+    if (busy) return;
+    document.getElementById("member-query").value = "";
+    query = "";
+    refresh(1);
+});
 previous.addEventListener("click", () => refresh(page - 1));
 next.addEventListener("click", () => refresh(page + 1));
 const close = document.getElementById("member-close");

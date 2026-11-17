@@ -318,6 +318,13 @@ class DatabaseIntegrationTests {
         List<Long> ids = new ArrayList<>();
         for (int index = 0; index < 12; index++) {
             Event event = createEvent(admin.getId(), 2);
+            if (index < 2) {
+                event.setTitle("Admin search 100%_");
+                if (index == 1) {
+                    event.setStatus("CANCELLED");
+                }
+                events.saveAndFlush(event);
+            }
             ids.add(event.getId());
         }
         reloadFromDatabase();
@@ -334,6 +341,15 @@ class DatabaseIntegrationTests {
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.events[0].id").value(ids.get(1).intValue()))
                 .andExpect(jsonPath("$.events[1].id").value(ids.get(0).intValue()));
+        mvc.perform(get("/admin/events/page").param("keyword", "admin search 100%_")
+                .header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalEvents").value(2));
+        mvc.perform(get("/admin/events/page").param("keyword", "admin search 100%_")
+                .param("editableOnly", "true").header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalEvents").value(1))
+                .andExpect(jsonPath("$.events[0].id").value(ids.get(0).intValue()));
         mvc.perform(get("/admin/events/page").param("page", "0")
                 .header("Authorization", bearer(adminLogin)))
                 .andExpect(status().isBadRequest());

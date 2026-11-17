@@ -13,8 +13,9 @@
     <script src="/page-jump.js?v=1" defer></script>
     <link rel="stylesheet" href="/event-search.css?v=1">
     <script src="/event-fee.js?v=1" defer></script>
-    <script src="/events.js?v=payment-1" defer></script>
+    <script src="/events.js?v=shared-search-history" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=1">
+    <script src="/search-history.js?v=1" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -26,7 +27,7 @@
     <main class="page">
         <h1>D&amp;D 活動列表</h1>
         <p id="line-notification-prompt" class="notification-prompt" data-load-notification-status hidden><a href="/member-settings.html#line-notification-form">綁定 LINE 接收開團提醒與取消通知</a></p>
-            <form id="event-search" class="event-search" action="/events.html" method="get" aria-label="搜尋活動">
+            <form id="event-search" autocomplete="off" data-search-history="dnd-event-search-history" class="event-search" action="/events.html" method="get" aria-label="搜尋活動">
             <div class="event-search-fields">
                 <label>關鍵字 <input name="q" type="search" autocomplete="off" list="event-search-history" maxlength="100" placeholder="活動名稱或地點"></label>
                 <datalist id="event-search-history"></datalist>

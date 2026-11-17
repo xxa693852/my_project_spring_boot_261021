@@ -118,7 +118,7 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
         slots.textContent = "剩餘名額 " + event.remainingSlots + " / " + event.capacity;
         register.hidden = !registrationStatusKnown || isRegistered || (!hasHold && status !== "可報名");
         if (event.registrationFee > 0) {
-            register.textContent = hasHold ? "繼續付款" : "查看費用並報名";
+            register.textContent = hasHold ? "繼續付款" : "付費報名";
         }
         registered.hidden = !isRegistered;
         cancel.hidden = !isRegistered || event.status !== "OPEN"
@@ -182,7 +182,9 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     register.addEventListener("click", () => {
         // 先到詳情確認費用與保留規則，再開啟測試付款頁。
         if (event.registrationFee > 0) {
-            location.assign(link.href);
+            const target = new URL(link.href);
+            if (!hasHold) target.searchParams.set("confirmPayment", "1");
+            location.assign(target.href);
             return;
         }
         changeRegistration("POST");
@@ -207,35 +209,6 @@ for (const name of ["q", "from", "through", "beginnerOnly", "availableOnly"]) {
         if (control.value) filters.set(name, control.value);
     }
 }
-
-const keywordInput = searchForm.elements.namedItem("q");
-const keywordSuggestions = document.getElementById("event-search-history");
-const keywordHistoryKey = "dnd-event-search-history";
-let keywordHistory = [];
-try {
-    const saved = JSON.parse(localStorage.getItem(keywordHistoryKey) || "[]");
-    if (Array.isArray(saved)) {
-        keywordHistory = saved.filter(term => typeof term === "string" && term.trim() && term.length <= 100)
-            .slice(0, 10);
-    }
-} catch {
-    // 搜尋功能仍可在瀏覽器停用儲存時使用。
-}
-for (const term of keywordHistory) {
-    const option = document.createElement("option");
-    option.value = term;
-    keywordSuggestions.append(option);
-}
-searchForm.addEventListener("submit", () => {
-    const term = keywordInput.value.trim();
-    if (!term) return;
-    const recent = [term, ...keywordHistory.filter(saved => saved !== term)].slice(0, 10);
-    try {
-        localStorage.setItem(keywordHistoryKey, JSON.stringify(recent));
-    } catch {
-        // 儲存失敗時照常送出搜尋。
-    }
-});
 
 const dateFrom = searchForm.elements.namedItem("from");
 const dateThrough = searchForm.elements.namedItem("through");

@@ -329,5 +329,10 @@ html:has(.cancel-registration-dialog[open]) { overflow: hidden; }
     font-weight: 750;
     margin: .4rem 0;
 }
+.detail-fee .event-fee {
+    margin: 0 0 1rem;
+    padding: .4rem .75rem;
+    border-width: 1px;
+}
 .event-fee-free { color: #205b3d; background: #ebf8ef; }
 .event-fee-paid { color: #784706; background: #fff2cf; }

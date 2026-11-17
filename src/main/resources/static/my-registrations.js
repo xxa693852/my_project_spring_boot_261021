@@ -2,7 +2,67 @@ const message = document.getElementById("message");
 const list = document.getElementById("registration-list");
 const actionMessage = document.getElementById("action-message");
 const retry = document.getElementById("retry");
+const searchForm = document.getElementById("registration-search");
+const pagination = document.getElementById("registration-pagination");
+const previousPage = document.getElementById("registration-previous");
+const nextPage = document.getElementById("registration-next");
+const pageSize = 8;
+let registrations = [];
+let currentPage = 1;
+let keyword = "";
+let cancelableOnly = false;
 let busy = false;
+
+function renderRegistrations(page = currentPage) {
+    // 先篩選完整清單，再切出目前這一頁的資料。
+    const matches = registrations.filter(registration => {
+        if (cancelableOnly && !registration.canCancel) return false;
+        return !keyword
+            || (registration.eventTitle || "").toLowerCase().includes(keyword)
+            || (registration.location || "").toLowerCase().includes(keyword);
+    });
+    const totalPages = Math.max(1, Math.ceil(matches.length / pageSize));
+    // 取消最後一頁的最後一筆後，回到仍有結果的頁面。
+    currentPage = Math.min(Math.max(1, page), totalPages);
+    const start = (currentPage - 1) * pageSize;
+    list.replaceChildren();
+    matches.slice(start, start + pageSize).forEach(render);
+    pagination.hidden = totalPages < 2;
+    if (!pagination.hidden) {
+        renderPageJump(pagination, currentPage, totalPages, changePage);
+        previousPage.disabled = currentPage === 1;
+        nextPage.disabled = currentPage === totalPages;
+    }
+    if (matches.length) {
+        message.textContent = "共 " + matches.length + " 筆，第 " + currentPage + " / " + totalPages + " 頁";
+    } else {
+        message.textContent = keyword || cancelableOnly ? "沒有符合條件的報名。" : "你目前沒有報名紀錄。";
+    }
+}
+
+function changePage(page) {
+    renderRegistrations(page);
+    message.tabIndex = -1;
+    message.focus();
+}
+
+function applySearch() {
+    keyword = searchForm.elements.keyword.value.trim().toLowerCase();
+    cancelableOnly = searchForm.elements.cancelableOnly.checked;
+    renderRegistrations(1);
+}
+
+searchForm.addEventListener("submit", event => {
+    event.preventDefault();
+    applySearch();
+});
+searchForm.elements.cancelableOnly.addEventListener("change", applySearch);
+document.getElementById("clear-registration-search").addEventListener("click", () => {
+    searchForm.reset();
+    applySearch();
+});
+previousPage.addEventListener("click", () => changePage(currentPage - 1));
+nextPage.addEventListener("click", () => changePage(currentPage + 1));
 function requireLogin() {
     if (DndAuth.session()) return false;
     list.replaceChildren();
@@ -48,6 +108,7 @@ function render(registration) {
     if (registration.canCancel) {
         const cancel = document.createElement("button");
         cancel.type = "button";
+        cancel.disabled = busy;
         cancel.textContent = "取消報名";
         cancel.addEventListener("click", () => cancelRegistration(registration));
         actions.append(cancel);
@@ -60,6 +121,7 @@ function render(registration) {
 async function loadRegistrations() {
     if (requireLogin()) return;
     retry.hidden = true;
+    searchForm.hidden = pagination.hidden = true;
     list.replaceChildren();
     message.textContent = "報名紀錄載入中……";
     try {
@@ -68,10 +130,11 @@ async function loadRegistrations() {
         if (!response.ok) {
             throw new Error(await DndAuth.errorMessage(response, "無法讀取報名紀錄。"));
         }
-        const registrations = await response.json();
-        if (!Array.isArray(registrations)) throw new Error("報名資料格式不正確。");
-        registrations.forEach(render);
-        message.textContent = registrations.length ? "" : "你目前沒有報名紀錄。";
+        const result = await response.json();
+        if (!Array.isArray(result)) throw new Error("報名資料格式不正確。");
+        registrations = result;
+        searchForm.hidden = false;
+        renderRegistrations();
     } catch (error) {
         message.textContent = error.message || "無法讀取報名紀錄，請稍後再試。";
         retry.hidden = false;
@@ -95,6 +158,7 @@ async function cancelRegistration(registration) {
     } finally {
         await loadRegistrations();
         busy = false;
+        list.querySelectorAll("button").forEach(button => { button.disabled = false; });
     }
 }
 retry.addEventListener("click", loadRegistrations);

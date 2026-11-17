@@ -57,4 +57,15 @@ List<Event> findByStatusOrderByStartAtAsc(String status);
             @Param("paymentsReady") boolean paymentsReady,
             @Param("now") LocalDateTime now, Pageable pageable);
 
+    @Query("""
+            SELECT e FROM Event e
+            WHERE (:keyword IS NULL OR LOWER(e.title) LIKE LOWER(:keyword) ESCAPE '!'
+                   OR LOWER(e.location) LIKE LOWER(:keyword) ESCAPE '!'
+                   OR LOWER(e.hostName) LIKE LOWER(:keyword) ESCAPE '!')
+              AND (:editableOnly = false OR (e.status = 'OPEN' AND e.startAt > :now))
+            """)
+    Page<Event> searchAdmin(@Param("keyword") String keyword,
+            @Param("editableOnly") boolean editableOnly, @Param("now") LocalDateTime now,
+            Pageable pageable);
+
 }

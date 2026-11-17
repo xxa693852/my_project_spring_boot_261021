@@ -9,6 +9,8 @@ const save = document.getElementById("save-event");
 const formMessage = document.getElementById("form-message");
 const retry = document.getElementById("retry");
 const newEvent = document.getElementById("new-event");
+const searchForm = document.getElementById("admin-event-search");
+let activeFilters = new URLSearchParams();
 const pagination = document.getElementById("event-pagination");
 const previousPage = document.getElementById("previous-page");
 const nextPage = document.getElementById("next-page");
@@ -48,6 +50,8 @@ function requireLogin() {
 function setBusy(value) {
     busy = value;
     management.querySelectorAll("button").forEach(button => { button.disabled = value; });
+    searchForm.elements.keyword.disabled = value;
+    searchForm.elements.editableOnly.disabled = value;
     fields.disabled = value || !editable;
     save.disabled = value || !editable;
     retry.disabled = value;
@@ -94,12 +98,21 @@ async function checked(path, options) {
     }
     return data;
 }
-async function loadList(page = currentPage) {
-    const result = await checked("/admin/events/page?page=" + page);
+async function loadList(page = currentPage, filters = activeFilters) {
+    const params = new URLSearchParams(filters);
+    params.set("page", page);
+    const result = await checked("/admin/events/page?" + params);
+    // Removing an event from the results can empty the last page.
+    const lastPage = Math.max(1, result.totalPages);
+    if (page > lastPage) {
+        return loadList(lastPage, filters);
+    }
     if (!Array.isArray(result.events)) throw new Error("活動資料格式不正確。");
+    activeFilters = filters;
     const events = result.events;
     list.replaceChildren();
-    if (!events.length) text(list, "p", "目前沒有活動。");
+    if (!events.length && filters.size) text(list, "p", "沒有符合條件的活動。");
+    else if (!events.length) text(list, "p", "目前沒有活動。");
     const statuses = { OPEN: "開放中", CLOSED: "已關閉", CANCELLED: "已取消" };
     for (const event of events) {
         const card = document.createElement("article");
@@ -425,6 +438,33 @@ async function changePage(page) {
         pageStatus.focus();
     }
 }
+async function applySearch() {
+    if (busy) return;
+    const filters = new URLSearchParams();
+    const keyword = searchForm.elements.keyword.value.trim();
+    if (keyword) filters.set("keyword", keyword);
+    if (searchForm.elements.editableOnly.checked) filters.set("editableOnly", "true");
+    setBusy(true);
+    message.textContent = "";
+    try {
+        await loadList(1, filters);
+    } catch (error) {
+        searchForm.elements.keyword.value = activeFilters.get("keyword") || "";
+        searchForm.elements.editableOnly.checked = activeFilters.has("editableOnly");
+        message.textContent = error.message;
+    } finally {
+        setBusy(false);
+    }
+}
+searchForm.addEventListener("submit", event => {
+    event.preventDefault();
+    applySearch();
+});
+searchForm.elements.editableOnly.addEventListener("change", applySearch);
+document.getElementById("clear-admin-event-search").addEventListener("click", () => {
+    searchForm.reset();
+    applySearch();
+});
 previousPage.addEventListener("click", () => changePage(currentPage - 1));
 nextPage.addEventListener("click", () => changePage(currentPage + 1));
 retry.addEventListener("click", initialize);

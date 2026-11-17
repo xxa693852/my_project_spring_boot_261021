@@ -9,7 +9,8 @@
     <script src="/taipei-date-picker.js?v=1" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=2">
     <script src="/page-jump.js?v=1" defer></script>
-    <script src="/admin-members.js?v=list-management" defer></script>
+    <script src="/admin-members.js?v=clear-search" defer></script>
+    <script src="/search-history.js?v=1" defer></script>
 </head>
 <body>
 <header class="site-header">
@@ -22,10 +23,12 @@
     <h1>會員管理</h1>
     <p id="member-status" role="status"></p>
     <section id="member-management" hidden>
-        <form id="member-search">
+        <form id="member-search" autocomplete="off" data-search-history="dnd-admin-member-search-history">
             <label for="member-query">帳號、姓名或 Email</label>
-            <input id="member-query" type="search" maxlength="254">
+            <input id="member-query" type="search" maxlength="254" autocomplete="off" list="admin-member-search-history">
+                    <datalist id="admin-member-search-history"></datalist>
             <button type="submit">搜尋</button>
+            <button id="clear-member-search" type="button">清除條件</button>
         </form>
         <div id="member-results" class="member-results"></div>
         <nav class="actions" aria-label="會員列表分頁" hidden>

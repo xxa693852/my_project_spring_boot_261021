@@ -67,6 +67,7 @@ let currentFee = 0;
 const paymentDialog = document.getElementById("payment-confirmation");
 
 function confirmEventPayment() {
+    document.getElementById("payment-event-name").textContent = title.textContent;
     showEventFee(document.getElementById("payment-confirmation-fee"), currentFee);
     paymentDialog.returnValue = "";
     paymentDialog.showModal();
@@ -131,6 +132,16 @@ async function loadEvent() {
             statusText.textContent = registration?.status === "CANCELLED"
                 ? "你已取消報名。" : "你尚未報名這場活動。";
             register.hidden = !event.canRegister;
+        }
+        if (detailParams.get("confirmPayment") === "1") {
+            // Consume the list action after checking registration so refresh cannot reopen it.
+            detailParams.delete("confirmPayment");
+            const query = detailParams.size ? "?" + detailParams : "";
+            history.replaceState(history.state, "", location.pathname + query + location.hash);
+            if (currentFee > 0 && !register.hidden && registration?.status !== "PENDING_PAYMENT") {
+                register.focus();
+                register.click();
+            }
         }
     } catch (error) {
         if (error.status === 401 && !section.hidden) {

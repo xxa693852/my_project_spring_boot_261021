@@ -139,11 +139,14 @@ public class EventService {
 
 
         @Transactional(readOnly = true)
-        public EventPageResponse findAdminPage(Long memberId, int page) {
+        public EventPageResponse findAdminPage(Long memberId, int page, String keyword, boolean editableOnly) {
             validateAdmin(memberId);
             PageRequest pageRequest = eventPageRequest(page, ADMIN_PAGE_SIZE,
                     Sort.Direction.DESC, "createdAt");
-            return toEventPageResponse(eventRepository.findAll(pageRequest), page);
+            // Filter before pagination so the result count covers all matching events.
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
+            Page<Event> matches = eventRepository.searchAdmin(eventKeywordPattern(keyword), editableOnly, now, pageRequest);
+            return toEventPageResponse(matches, page);
         }
 
     @Transactional(readOnly = true)
@@ -387,15 +390,7 @@ public class EventService {
         }
 
         PageRequest pageRequest = eventPageRequest(page, PUBLIC_PAGE_SIZE, Sort.Direction.ASC, "startAt");
-        String pattern = null;
-        if (keyword != null && !keyword.isBlank()) {
-            String term = keyword.strip();
-            if (term.length() > 100) {
-                throw new IllegalArgumentException("搜尋關鍵字最多 100 字。");
-            }
-            // 將 LIKE 的特殊字元當成搜尋文字。
-            pattern = "%" + term.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
-        }
+        String pattern = eventKeywordPattern(keyword);
         LocalDateTime startFrom = null;
         if (from != null) {
             startFrom = from.atStartOfDay();
@@ -407,6 +402,19 @@ public class EventService {
         Page<Event> matches = eventRepository.searchPublic(pattern, startFrom, until,
                 beginnerOnly, availableOnly, newebPay.isReady(), LocalDateTime.now(ZoneId.of("Asia/Taipei")), pageRequest);
         return toEventPageResponse(matches, page);
+    }
+
+    private String eventKeywordPattern(String keyword) {
+        String pattern = null;
+        if (keyword != null && !keyword.isBlank()) {
+            String term = keyword.strip();
+            if (term.length() > 100) {
+                throw new IllegalArgumentException("搜尋關鍵字最多 100 字。");
+            }
+            // 將 LIKE 的特殊字元當成搜尋文字。
+            pattern = "%" + term.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        }
+        return pattern;
     }
 
     private PageRequest eventPageRequest(int page, int pageSize, Sort.Direction direction, String sortField) {
