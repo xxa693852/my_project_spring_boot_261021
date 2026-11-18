@@ -83,7 +83,7 @@ public class Payment {
 
     protected Payment() {
     }
-
+    //注入建構子 註冊編號,商戶訂單編號,商戶編號,金額
     public Payment(Long registrationId, String merchantOrderNo, String merchantId, Integer amount) {
         this.registrationId = registrationId;
         this.merchantOrderNo = merchantOrderNo;

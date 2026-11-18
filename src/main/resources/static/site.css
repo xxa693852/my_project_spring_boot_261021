@@ -18,9 +18,36 @@ body {
     min-height: 100vh;
     font: 1rem/1.6 "Source Sans 3", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
     color: var(--ink);
-    background: radial-gradient(ellipse at 12% 14%, #f6eedc, transparent 58%),
-        linear-gradient(145deg, #e8dac3, #dcdacd 78%);
+    background: #ece6d7;
+    isolation: isolate;
     overflow-wrap: anywhere;
+}
+
+/* 固定背景獨立於內容，捲動長列表時仍保持圖片比例。 */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        linear-gradient(rgba(251, 247, 238, .24), rgba(251, 247, 238, .4)),
+        var(--page-background, url("/dnd-background.png")) center center / cover no-repeat;
+}
+
+/* 由各頁 body 的 class 選擇背景，共用原本的遮罩與縮放設定。 */
+body.my-registrations-page {
+    --page-background: url("/dnd-MyRegistrationBackground.png");
+}
+
+body.member-settings-page {
+    --page-background: url("/dnd-MemberSettingsBackground.png");
+}
+
+@media (max-width: 600px) {
+    body::before {
+        background-position: center, 65% center;
+    }
 }
 
 h1, h2, h3 {

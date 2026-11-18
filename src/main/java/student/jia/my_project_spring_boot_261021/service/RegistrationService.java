@@ -34,13 +34,16 @@ public class RegistrationService {
     private final MemberRepository memberRepository;
     private final EventRepository eventRepository;
     private final PaymentRepository payments;
-
+    // 建立報名回應資料，包含這筆報名最新的付款狀態
     private RegistrationResponse registrationResponse(Registration registration, Event event) {
+          // 用報名 ID 查付款紀錄，按付款 ID 由大到小，取最新一筆
         Optional<Payment> payment = payments.findFirstByRegistrationIdOrderByIdDesc(registration.getId());
+         // 沒有付款紀錄時，付款狀態維持 null，例如免費報名
         String status = null;
         if (payment.isPresent()) {
             status = payment.get().getPaymentStatus();
         }
+        // 把報名資料、活動資料與付款狀態組成回應物件
         return new RegistrationResponse(registration, event, status);
     }
 
@@ -59,7 +62,7 @@ public class RegistrationService {
     }
 
     //活動報名
-    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @Transactional(isolation = Isolation.READ_COMMITTED)//READ_COMMITTED 表示讀取其他交易已提交的資料。
     public void register(Long memberId, Long eventId) {
         register(memberId, eventId, null, null);
     }
@@ -80,7 +83,7 @@ public class RegistrationService {
                 "member",
                 ResponseMessages.MEMBER_NOT_FOUND);
     }
-
+        //ZoneId.of("Asia/Taipei") 就是確保不管伺服器開在世界上哪裡，抓「現在時間 (now)」時，都統一對齊到台灣（台北）的時區來做判斷。
     if (member.get().isSuspendedAt(LocalDateTime.now(ZoneId.of("Asia/Taipei")))) {
         throw new IllegalArgumentException("帳號停權中，無法報名新活動");
     }
@@ -103,7 +106,7 @@ public class RegistrationService {
             throw new IllegalArgumentException(
                     ResponseMessages.EVENT_NOT_OPEN);
         }
-
+            //ZoneId.of("Asia/Taipei") 就是確保不管伺服器開在世界上哪裡，抓「現在時間 (now)」時，都統一對齊到台灣（台北）的時區來做判斷。
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
 
         // 4. 檢查報名截止時間
