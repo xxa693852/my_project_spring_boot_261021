@@ -126,7 +126,7 @@ public class RegistrationService {
         if (merchantId != null && (expectedFee == null || expectedFee != targetEvent.getRegistrationFee())) {
             throw new IllegalArgumentException("報名費已變更，請確認新金額再付款。");
         }
-
+                            //既有註冊
         Optional<Registration> existingRegistration =
                 registrationRepository.findByMemberIdAndEventId(
                         memberId, eventId);
@@ -142,6 +142,7 @@ public class RegistrationService {
         // 重開付款頁沿用原訂單與期限，不再多占一席，也不重新計時。
         if (merchantId != null && existingRegistration.isPresent()) {
             Registration previous = existingRegistration.get();
+            //isBefore 是常見的日期與時間比較方法，用來判斷一個時間點是否早於另一個指定的時間點，回傳布林值（true 或 false）。
             if ("PENDING_PAYMENT".equals(previous.getStatus()) && now.isBefore(previous.getPaymentExpiresAt())) {
                 Payment payment = payments.findFirstByRegistrationIdOrderByIdDesc(previous.getId()).orElseThrow();
                 return new PaymentReservation(payment, previous.getPaymentExpiresAt());
@@ -152,12 +153,12 @@ public class RegistrationService {
         long registeredCount =
                 registrationRepository.countByEventIdAndStatus(
                         eventId, "REGISTERED");
-
+            //註冊數量                                  //計算有效保留                      //目標活動人數數量
         if (registeredCount + registrationRepository.countActiveHolds(eventId, now) >= targetEvent.getCapacity()) {
             throw new IllegalArgumentException(
                     ResponseMessages.EVENT_FULL);
         }
-
+                    //活動報名系統：尋找重疊的活動
         List<Event> overlappingEvents = registrationRepository.findOverlappingEvents(
                 memberId, eventId, targetEvent.getStartAt(), targetEvent.getEndAt(), now);
         if (!overlappingEvents.isEmpty()) {
@@ -193,11 +194,12 @@ public class RegistrationService {
         LocalDateTime expiresAt = now.plusMinutes(30);
         if (targetEvent.getRegistrationDeadline().isBefore(expiresAt)) {
             expiresAt = targetEvent.getRegistrationDeadline();
-        }
-        registration.setStatus("PENDING_PAYMENT");
-        registration.setPaymentExpiresAt(expiresAt);
+        }                               
+        registration.setStatus("PENDING_PAYMENT");//PENDING_PAYMENT : 待付款
+        registration.setPaymentExpiresAt(expiresAt); //付款到期時間
         Registration saved = registrationRepository.save(registration);
-        String orderNo = "DND" + UUID.randomUUID().toString().replace("-", "").substring(0, 27);
+                        //	固定前綴 //產生一個隨機 UUID //.toString()轉成字串，例如 550e8400-e29b-41d4-a716-446655440000
+        String orderNo = "DND" + UUID.randomUUID().toString().replace("-", "").substring(0, 27); //.replace("-", "")	移除所有連字號，剩下 32 個字元 .substring(0, 27)	取前 27 個字元
         Payment payment = payments.save(new Payment(saved.getId(), orderNo, merchantId, targetEvent.getRegistrationFee()));
         return new PaymentReservation(payment, expiresAt);
     }

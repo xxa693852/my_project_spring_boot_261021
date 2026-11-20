@@ -57,9 +57,9 @@ public class AdminMemberService {
             throw new ResourceNotFoundException("member", ResponseMessages.MEMBER_NOT_FOUND);
         }
         List<SuspensionAction> actions = jdbc.query("""
-                SELECT actor_id, action, reason, acted_at, suspended_until, notification_status, notification_channel, notification_result_code
+                SELECT actor_member_id, action, reason, acted_at, suspended_until, notification_status, notification_channel, notification_result_code
                 FROM member_suspension_actions WHERE member_id = ? ORDER BY id DESC
-                """, (row, index) -> new SuspensionAction(row.getLong("actor_id"), row.getString("action"),
+                """, (row, index) -> new SuspensionAction(row.getLong("actor_member_id"), row.getString("action"),
                 row.getString("reason"), row.getObject("acted_at", LocalDateTime.class),
                 row.getObject("suspended_until", LocalDateTime.class), row.getString("notification_status"),
                 row.getString("notification_channel"), row.getString("notification_result_code")), id);
@@ -98,7 +98,7 @@ public class AdminMemberService {
 
         jdbc.update("""
                 INSERT INTO member_suspension_actions
-                    (member_id, actor_id, action, reason, acted_at, suspended_until, notification_status)
+                    (member_id, actor_member_id, action, reason, acted_at, suspended_until, notification_status)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, id, actor, action, reason.strip(), now, until, "SUSPEND".equals(action) ? "PENDING" : null);
     }

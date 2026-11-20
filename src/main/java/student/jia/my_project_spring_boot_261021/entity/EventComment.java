@@ -26,7 +26,7 @@ public class EventComment {
     private Long eventId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "author_id", nullable = false)
+    @JoinColumn(name = "member_id", nullable = false)
     private Member author;
 
     @Column(nullable = false, length = 500)

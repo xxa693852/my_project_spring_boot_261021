@@ -234,7 +234,7 @@ public class EventService {
 
         // 4. 原本的活動已開始，就不允許修改
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
-
+        //isBefore 是用來判斷某個日期或時間是否早於另一個指定時間的方法，通常回傳布林值（true 或 false）
         if (!now.isBefore(targetEvent.getStartAt())) {
             throw new IllegalArgumentException(
                     "活動已開始，不能修改");
@@ -264,7 +264,7 @@ public class EventService {
         // 6. 統計目前仍有效的報名人數
         long registeredCount =
                 registrationRepository.countByEventIdAndStatus(
-                        eventId, "REGISTERED");
+                        eventId, "REGISTERED"); //REGISTERED 已註冊
 
         // 可以改成剛好等於報名人數，但不能更少
         if (request.getCapacity() < registeredCount + registrationRepository.countActiveHolds(eventId, now)) {
@@ -285,32 +285,33 @@ public class EventService {
                 && request.getRegistrationFee() != targetEvent.getRegistrationFee()) {
             throw new IllegalArgumentException("已有確認報名，無法修改報名費。");
         }
-        targetEvent.setTitle(request.getTitle().trim());
-        targetEvent.setDescription(request.getDescription().trim());
-        targetEvent.setHostName(request.getHostName().trim());
-        targetEvent.setLocation(request.getLocation().trim());
-        targetEvent.setStartAt(start);
+        targetEvent.setTitle(request.getTitle().trim()); //trim())用來去除字串頭尾多餘空白字元的函式或方法
+        targetEvent.setDescription(request.getDescription().trim()); //Description 活動介紹
+        targetEvent.setHostName(request.getHostName().trim()); // 主持人
+        targetEvent.setLocation(request.getLocation().trim()); //地點
+        targetEvent.setStartAt(start); //開始時間
         targetEvent.setEndAt(end);
-        targetEvent.setRegistrationDeadline(deadline);
-        targetEvent.setCapacity(request.getCapacity());
-        if (request.getRegistrationFee() != null) {
+        targetEvent.setRegistrationDeadline(deadline);//報名截止時間
+        targetEvent.setCapacity(request.getCapacity()); //報名人數名額上限
+        if (request.getRegistrationFee() != null) { //報名費
             targetEvent.setRegistrationFee(request.getRegistrationFee());
         }
         targetEvent.setBeginnerFriendly(request.getBeginnerFriendly());
         updatePresentation(targetEvent, request.getCoverTheme(), request.getTags());
 
         
-    }
+    }   //更新圖片
     private void updatePresentation(Event event, String coverTheme, List<String> tags) {
+       
         if (coverTheme != null) {
-            event.setCoverTheme(coverTheme);
+            event.setCoverTheme(coverTheme); //若有傳入封面選項，就把它存進 Event
         }
         if (tags != null) {
-            LinkedHashSet<String> uniqueTags = new LinkedHashSet<>();
+            LinkedHashSet<String> uniqueTags = new LinkedHashSet<>(); //LinkedHashSet 會去除重複值，並保留加入的順序
             for (String tag : tags) {
                 uniqueTags.add(tag.strip());
             }
-            event.setCustomTags(String.join("\n", uniqueTags));
+            event.setCustomTags(String.join("\n", uniqueTags)); // 更新活動封面主題與自訂標籤，標籤去除頭尾空白及重複值
         }
     }
 

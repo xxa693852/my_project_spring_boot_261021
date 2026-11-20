@@ -71,7 +71,7 @@ public class Event {
     private String status = "OPEN";
 
     // 建立活動的會員 ID
-    @Column(name = "created_by", nullable = false)
+    @Column(name = "member_id", nullable = false)
     private Long createdBy;
 
     @Column(name = "created_at", nullable = false)
@@ -138,7 +138,7 @@ public class Event {
     // capacity              INT          NOT NULL,
     // beginner_friendly     BOOLEAN      NOT NULL DEFAULT FALSE,
     // status                VARCHAR(20)  NOT NULL DEFAULT 'OPEN',
-    // created_by            BIGINT       NOT NULL,
+    // member_id             BIGINT       NOT NULL,
     // created_at            DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     // updated_at            DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
     //                                    ON UPDATE CURRENT_TIMESTAMP(6),
