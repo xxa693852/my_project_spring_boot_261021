@@ -155,7 +155,8 @@
         return { adminSession: true, loginId: "admin:" + profile.id + ":" + profile.csrfToken };
     }
     async function memberRequest(path, options = {}) {
-        if (!/^\/(members(?:\/|$)|registration(?:\/|$))/.test(path)) throw new Error("會員請求路徑不正確。");
+        // 免費報名會使用 /registration?eventId=...，根路徑後也必須允許查詢參數。
+        if (!/^\/(members|registration)(?:\/|\?|$)/.test(path)) throw new Error("會員請求路徑不正確。");
         if (!frontSession()) {
             const error = new Error("管理員登入已逾時，請重新從管理員入口登入。");
             error.status = 401;

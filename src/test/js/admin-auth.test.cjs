@@ -286,3 +286,35 @@ test('expired admin session cannot leave a usable member bridge behind', async (
     await assert.rejects(app.context.window.DndAuth.request('/registration'));
     assert.ok(!app.nav.children.some(link => link.href === '/admin-events.html'));
 });
+
+
+test('admin can register for a free event with query parameters and cancel without losing session', async () => {
+    const app = setup('/events.html', [[200, identity]]);
+    await settled();
+    app.responses.push([200, {id: 7}]);
+    loadMemberAuth(app, false);
+    await app.context.window.DndAuth.ready;
+    await settled();
+    app.responses.push([200, {status: 'REGISTERED'}], [200, {}]);
+    const response = await app.context.window.DndAuth.request('/registration?eventId=12', {method: 'POST'});
+    assert.equal(response.status, 200);
+    await app.context.window.DndAuth.request('/registration/events/12', {method: 'DELETE'});
+    for (const call of app.calls.filter(call => call.options.method === 'POST' || call.options.method === 'DELETE')) {
+        assert.equal(call.options.headers.get('X-Admin-Front'), '1');
+        assert.equal(call.options.headers.get('X-Admin-CSRF'), 'csrf');
+        assert.equal(call.options.headers.get('Authorization'), null);
+        assert.equal(call.options.credentials, 'same-origin');
+    }
+    assert.ok(app.auth.frontSession());
+    assert.deepEqual(app.navigation, []);
+});
+
+test('member bridge rejects external URLs and similar route prefixes before sending credentials', async () => {
+    const app = setup('/events.html', [[200, identity]]);
+    await settled();
+    const count = app.calls.length;
+    for (const path of ['https://example.com/registration?eventId=12', '//example.com/registration', '/registration-other?eventId=12', '/members-other']) {
+        await assert.rejects(app.auth.memberRequest(path), /會員請求路徑不正確/);
+    }
+    assert.equal(app.calls.length, count);
+});
