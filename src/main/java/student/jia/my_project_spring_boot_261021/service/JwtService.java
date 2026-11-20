@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -126,7 +127,11 @@ public class JwtService {
     // subject 放 ownerId；ownerType 用來區分 MEMBER / ADMIN；tokenType 用來區分 access / refresh。
     private String generateToken(String ownerType, Long ownerId, String tokenType, LocalDateTime expiresAt) {
         // ownerType 用來支援 MEMBER / ADMIN 各自登入；tokenType 用來區分 access / refresh。
+        // 每次簽發都建立新的 jti（JWT 識別碼），避免同會員在同秒登入或更新時產生相同 Token。
+        // 只增加識別碼，不變更簽章金鑰、有效期限或既有 Token 的驗證方式。
+        String tokenId = UUID.randomUUID().toString();
         return Jwts.builder()
+                .id(tokenId)
                 .subject(String.valueOf(ownerId))
                 .claim("ownerType", ownerType)
                 .claim("tokenType", tokenType)

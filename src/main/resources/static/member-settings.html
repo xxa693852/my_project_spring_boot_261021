@@ -7,10 +7,11 @@
     <title>D&amp;D 會員設定</title>
     <link rel="stylesheet" href="/site.css?v=page-backgrounds-2">
     <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
-    <script src="/password-rules.js?v=20261110" defer></script>
+    <script src="/password-rules.js?v=batch2-1" defer></script>
+    <script src="/member-rules.js?v=member-fields-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/auth.js?v=admin-member-bridge-1" defer></script>
-    <script src="/member-settings.js?v=admin-member-bridge-1" defer></script>
+    <script src="/member-settings.js?v=member-fields-1" defer></script>
     <script src="/line-notifications.js?v=admin-member-bridge-1" defer></script>
 </head>
 <body class="member-settings-page">
@@ -30,8 +31,8 @@
                 <fieldset>
                     <label for="account">帳號（僅供查看）</label>
                     <input id="account" name="account" readonly autocomplete="username">
-                    <label for="name">姓名</label>
-                    <input id="name" name="name" maxlength="50" required autocomplete="name" aria-describedby="name-error">
+                    <label for="name">姓名或暱稱（1～30 字元）</label>
+                    <input id="name" name="name" maxlength="30" required autocomplete="name" aria-describedby="name-error">
                     <p id="name-error" class="field-error"></p>
                     <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
                     <label for="email">Email</label>
@@ -48,8 +49,8 @@
                     <label for="oldPassword">舊密碼</label>
                     <input id="oldPassword" name="oldPassword" type="password" required autocomplete="current-password" aria-describedby="oldPassword-error">
                     <p id="oldPassword-error" class="field-error"></p>
-                    <label for="password">新密碼（15～72 字元，UTF-8 不超過 72 bytes）</label>
-                    <input id="password" name="password" type="password" minlength="15" maxlength="72" required autocomplete="new-password" aria-describedby="password-error">
+                    <label for="password">新密碼（15～30 字元）</label>
+                    <input id="password" name="password" type="password" minlength="15" maxlength="30" required autocomplete="new-password" aria-describedby="password-error">
                     <p id="password-error" class="field-error"></p>
                     <label for="confirmPassword">確認新密碼</label>
                     <input id="confirmPassword" name="confirmPassword" type="password" required autocomplete="new-password" aria-describedby="confirmPassword-error">

@@ -17,10 +17,18 @@ form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (submitting) return;
     // 調整：立即提示長度與 bytes 錯誤；後端仍會再次驗證。
+    const nameError = DndMemberRules.name(form.elements.name.value);
+    const accountError = DndMemberRules.account(form.elements.account.value);
     const passwordError = DndPasswordRules.message(form.elements.password.value, true);
-    if (passwordError) {
-        message.textContent = passwordError;
-        form.elements.password.focus();
+    const confirmationError = DndPasswordRules.confirmation(form.elements.password.value, form.elements.confirmPassword.value);
+    if (nameError || accountError || passwordError || confirmationError) {
+        clearErrors();
+        const field = nameError ? "name" : accountError ? "account" : passwordError ? "password" : "confirmPassword";
+        const detail = nameError || accountError || passwordError || confirmationError;
+        message.textContent = detail;
+        document.getElementById(field + "-error").textContent = detail;
+        form.elements[field].setAttribute("aria-invalid", "true");
+        form.elements[field].focus();
         return;
     }
     submitting = true;

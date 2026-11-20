@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="/page-jump.css?v=2">
     <script src="/page-jump.js?v=1" defer></script>
     <link rel="stylesheet" href="/event-search.css?v=1">
-    <script src="/admin-events.js?v=admin-session-1" defer></script>
+    <script src="/event-validation.js?v=batch2-1" defer></script>
+    <script src="/admin-events.js?v=batch2-1" defer></script>
     <script src="/search-history.js?v=1" defer></script>
 </head>
 <body>
@@ -31,20 +32,20 @@
             </div>
             <p>所有活動日期與時間均以台北時間（Asia/Taipei，UTC+08:00）輸入及顯示。</p>
             <dialog id="event-dialog" aria-labelledby="form-title">
-                <form id="event-form">
+                <form id="event-form" novalidate>
                     <h2 id="form-title" tabindex="-1">新增活動</h2>
                     <p id="form-info"></p>
                     <fieldset id="event-fields">
-                        <label for="title">活動名稱</label>
+                        <label for="title">活動名稱（最多 100 字元）</label>
                         <input id="title" name="title" maxlength="100" required aria-describedby="title-error">
                         <p class="field-error" id="title-error"></p>
-                        <label for="description">活動介紹</label>
-                        <textarea id="description" name="description" required aria-describedby="description-error"></textarea>
+                        <label for="description">活動介紹（最多 5000 字元）</label>
+                        <textarea id="description" name="description" maxlength="5000" required aria-describedby="description-error"></textarea>
                         <p class="field-error" id="description-error"></p>
-                        <label for="hostName">主持人</label>
+                        <label for="hostName">主持人（最多 50 字元）</label>
                         <input id="hostName" name="hostName" maxlength="50" required aria-describedby="hostName-error">
                         <p class="field-error" id="hostName-error"></p>
-                        <label for="location">地點</label>
+                        <label for="location">地點（最多 255 字元）</label>
                         <input id="location" name="location" maxlength="255" required aria-describedby="location-error">
                         <p class="field-error" id="location-error"></p>
                         <label for="startAt">開始時間（台北時間）</label>
@@ -60,8 +61,8 @@
                         <input id="registrationFee" name="registrationFee" type="number" min="0"
                             max="2147483647" step="1" value="0" required aria-describedby="registrationFee-error">
                         <p class="field-error" id="registrationFee-error"></p>
-                        <label for="capacity">名額上限</label>
-                        <input id="capacity" name="capacity" type="number" min="1" step="1" required aria-describedby="capacity-error">
+                        <label for="capacity">名額上限（1～50 人）</label>
+                        <input id="capacity" name="capacity" type="number" min="1" max="50" step="1" required aria-describedby="capacity-error">
                         <p class="field-error" id="capacity-error"></p>
                         <label><input id="beginnerFriendly" name="beginnerFriendly" type="checkbox">新手友善</label>
                         <p class="field-error" id="beginnerFriendly-error"></p>
@@ -75,7 +76,7 @@
                         <p class="field-error" id="coverTheme-error"></p>
                         <img id="event-cover-preview" alt="活動封面預覽">
                         <label for="tags">自訂標籤</label>
-                        <p id="tags-help" class="field-help">每行一個，最多 5 個，每個最多 16 字。</p>
+                        <p id="tags-help" class="field-help">每行一個，最多 5 個，每個最多 16 字元。</p>
                         <textarea id="tags" name="tags" rows="3" aria-describedby="tags-help tags-error" placeholder="劇情向&#10;提供預製角色"></textarea>
                         <p class="field-error" id="tags-error"></p>
                     </fieldset>

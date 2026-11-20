@@ -67,6 +67,8 @@ public class EventService {
             Long memberId,
             CreateEventRequest request) {
 
+        validateDateRange(request.getStartAt(), request.getEndAt(), request.getRegistrationDeadline());
+
         // 1. 查詢啟用中的會員
         Optional<Member> member =
                 memberRepository.findByIdAndStatus(memberId, "ACTIVE");
@@ -218,6 +220,8 @@ public class EventService {
             Long eventId,
             UpdateEventRequest request) {
 
+        validateDateRange(request.getStartAt(), request.getEndAt(), request.getRegistrationDeadline());
+
         // 1. 檢查操作的人是否為啟用中的管理員
         validateAdmin(memberId);
 
@@ -321,6 +325,15 @@ public class EventService {
                 uniqueTags.add(tag.strip());
             }
             event.setCustomTags(String.join("\n", uniqueTags)); // 更新活動封面主題與自訂標籤，標籤去除頭尾空白及重複值
+        }
+    }
+
+    // MySQL DATETIME 只接受 1000～9999 年，先回傳可理解的 400，避免寫入時才發生資料庫錯誤。
+    private void validateDateRange(LocalDateTime start, LocalDateTime end, LocalDateTime deadline) {
+        for (LocalDateTime value : new LocalDateTime[] {start, end, deadline}) {
+            if (value == null || value.getYear() < 1000 || value.getYear() > 9999) {
+                throw new IllegalArgumentException("活動日期年份必須介於 1000～9999 年");
+            }
         }
     }
 

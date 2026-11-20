@@ -6,10 +6,11 @@
     <title>D&amp;D 會員註冊</title>
     <link rel="stylesheet" href="/site.css?v=dragon-background-1">
     <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
-    <script src="/password-rules.js?v=20261110" defer></script>
+    <script src="/password-rules.js?v=batch2-1" defer></script>
+    <script src="/member-rules.js?v=member-fields-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/auth.js?v=admin-member-bridge-1" defer></script>
-    <script src="/register.js" defer></script>
+    <script src="/register.js?v=member-fields-1" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -21,20 +22,22 @@
         <a id="login-link" href="/login.html">← 返回登入</a>
         <h1>會員註冊</h1>
         <form id="register-form" novalidate>
-            <label for="name">姓名</label>
-            <input id="name" name="name" autocomplete="name" maxlength="50" required aria-describedby="name-error">
+            <label for="name">姓名或暱稱（1～30 字元）</label>
+            <input id="name" name="name" autocomplete="name" maxlength="30" required aria-describedby="name-error">
             <p id="name-error" class="field-error"></p>
-            <label for="account">帳號</label>
-            <input id="account" name="account" autocomplete="username" maxlength="50" required aria-describedby="account-error">
+            <label for="account">帳號（4～20 字元）</label>
+            <p id="account-help" class="field-help">可使用英文字母、數字、底線（_）、連字號（-）與半形句點（.），不可有空白。</p>
+            <input id="account" name="account" autocomplete="username" minlength="4" maxlength="20" pattern="[A-Za-z0-9_.\-]+" required aria-describedby="account-help account-error">
             <p id="account-error" class="field-error"></p>
             <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="email-error">
+            <label for="email">電子信箱</label>
+            <p id="email-help" class="field-help">請填寫可收信的電子郵件地址，例如 name@example.com。</p>
+            <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="email-help email-error">
             <p id="email-error" class="field-error"></p>
-            <label for="password">密碼（15～72 字元，UTF-8 不超過 72 bytes）</label>
-            <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="72" required aria-describedby="password-error">
+            <label for="password">密碼（15～30 字元）</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="30" required aria-describedby="password-error">
             <p id="password-error" class="field-error"></p>
-            <label for="confirmPassword">確認密碼</label>
+            <label for="confirmPassword">確認密碼（請再次輸入相同密碼）</label>
             <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" required aria-describedby="confirmPassword-error">
             <p id="confirmPassword-error" class="field-error"></p>
             <button id="submit" type="submit">註冊</button>

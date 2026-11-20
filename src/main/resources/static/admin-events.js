@@ -21,7 +21,6 @@ const deliveryMessage = document.getElementById("delivery-message");
 const deliveryList = document.getElementById("delivery-list");
 const keys = ["title", "description", "hostName", "location", "startAt", "endAt", "registrationDeadline", "capacity", "registrationFee", "beginnerFriendly", "coverTheme", "tags"];
 const dateKeys = ["startAt", "endAt", "registrationDeadline"];
-const pastDateMessage = "請選擇今天或之後的日期（台北時間）。";
 let editingId = null, editable = true, busy = false;
 let currentPage = 1;
 let totalPages = 0;
@@ -312,34 +311,26 @@ form.addEventListener("submit", async event => {
     if (busy || !editable) return;
     clearErrors();
     const tags = form.elements.tags.value.split("\n").map(tag => tag.trim()).filter(Boolean);
-    if (tags.length > 5) {
-        showFieldError("tags", "最多可填寫 5 個自訂標籤").focus();
-        return;
-    }
-    if (tags.some(tag => tag.length > 16)) {
-        showFieldError("tags", "每個自訂標籤最多 16 字").focus();
-        return;
-    }
-    if (editingId === null) {
-        const today = taipeiDate.format(new Date());
-        for (const [key, picker] of datePickers) {
-            if (picker.sync() < today) {
-                picker.update(today);
-                document.getElementById(key + "-error").textContent = pastDateMessage;
-                picker.time.setAttribute("aria-invalid", "true");
-                picker.time.focus();
-                return;
-            }
-        }
-    }
+    if (editingId === null) for (const picker of datePickers.values()) picker.sync();
     const body = {};
     for (const key of keys) {
         const input = form.elements[key];
         body[key] = key === "tags" ? tags
             : key === "beginnerFriendly" ? input.checked
-            : (key === "capacity" || key === "registrationFee") ? Number(input.value)
+            : (key === "capacity" || key === "registrationFee") ? (input.value === "" ? null : Number(input.value))
             : key.endsWith("At") || key === "registrationDeadline"
                 ? (input.value.length === 16 ? input.value + ":00" : input.value) : input.value;
+    }
+    const errors = DndEventRules.validate(body, editingId === null);
+    let firstInvalid;
+    for (const key of Object.keys(errors)) {
+        const input = showFieldError(key, errors[key]);
+        if (!firstInvalid) firstInvalid = input;
+    }
+    if (firstInvalid) {
+        formMessage.textContent = "資料驗證失敗";
+        firstInvalid.focus();
+        return;
     }
     setBusy(true);
     formMessage.textContent = "儲存中……";

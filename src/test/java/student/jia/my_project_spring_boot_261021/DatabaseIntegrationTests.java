@@ -747,7 +747,7 @@ class DatabaseIntegrationTests {
         // 每個案例使用獨立帳號，不依賴既有 seed 或固定 ID。
         String suffix = UUID.randomUUID().toString().replace("-", "");
         MemberRegisterRequest request = new MemberRegisterRequest();
-        request.setAccount("it_" + suffix);
+        request.setAccount("it_" + suffix.substring(0, 16));
         request.setName("Integration Member");
         request.setEmail("it_" + suffix + "@example.com");
         request.setPassword(PASSWORD);
@@ -983,6 +983,30 @@ class DatabaseIntegrationTests {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(admin.getId()));
         mvc.perform(get("/registration").with(session).header("X-Admin-Front", "1"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$").isArray());
+        // 使用與免費報名前台相同的查詢參數，確認 Session 身分與 CSRF 都有生效。
+        Event freeEvent = createEvent(other.getId(), 2);
+        freeEvent.setRegistrationFee(0);
+        reloadFromDatabase();
+        String registrationUrl = "/registration?eventId=" + freeEvent.getId();
+        mvc.perform(post(registrationUrl).with(session).header("X-Admin-Front", "1")
+                .with(request -> { request.removeHeader("X-Admin-CSRF"); return request; }))
+                .andExpect(status().isForbidden());
+        assertEquals(0L, registrations.countByEventIdAndStatus(freeEvent.getId(), "REGISTERED"));
+        mvc.perform(post(registrationUrl).with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isCreated());
+        reloadFromDatabase();
+        assertEquals("REGISTERED", registrations.findByMemberIdAndEventId(admin.getId(), freeEvent.getId()).get().getStatus());
+        assertTrue(registrations.findByMemberIdAndEventId(other.getId(), freeEvent.getId()).isEmpty());
+        mvc.perform(get("/registration/events/" + freeEvent.getId()).with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REGISTERED"));
+        mvc.perform(delete("/registration/events/" + freeEvent.getId()).with(session).header("X-Admin-Front", "1")
+                .with(request -> { request.removeHeader("X-Admin-CSRF"); return request; }))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/registration/events/" + freeEvent.getId()).with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        assertEquals("CANCELLED", registrations.findByMemberIdAndEventId(admin.getId(), freeEvent.getId()).get().getStatus());
+        assertEquals(0L, registrations.countByEventIdAndStatus(freeEvent.getId(), "REGISTERED"));
         String profile = "/members/" + admin.getId() + "/profile";
         mvc.perform(put(profile).with(session).header("X-Admin-Front", "1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -1004,6 +1028,252 @@ class DatabaseIntegrationTests {
         mvc.perform(get("/members/me").with(session).header("X-Admin-Front", "1"))
                 .andExpect(status().isUnauthorized());
         mvc.perform(get("/admin/events").with(session)).andExpect(status().isUnauthorized());
+    }
+
+    // 真實 API 與 MySQL 驗證：不經過前端也必須遵守同一組欄位限制。
+    @Test
+    void createAndUpdateRejectInvalidEventFieldsWithoutSaving() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        AdminTestSession session = new AdminTestSession(mvc, admin, PASSWORD);
+        Event target = createEvent(admin.getId(), 2);
+        String originalTitle = target.getTitle();
+        long originalCount = events.count();
+        Object[][] invalidValues = {
+            {"title", " ", "活動名稱不能空白"},
+            {"title", "名".repeat(101), "活動名稱最多 100 字元"},
+            {"title", "活動\n名稱", "活動名稱不能包含換行"},
+            {"description", " ", "活動介紹不能空白"},
+            {"description", "文".repeat(5001), "活動介紹最多 5000 字元"},
+            {"hostName", "人".repeat(51), "主持人名稱最多 50 字元"},
+            {"location", "址".repeat(256), "地點最多 255 字元"},
+            {"capacity", 0, "名額上限必須是 1～50 人的整數"},
+            {"capacity", 51, "名額上限必須是 1～50 人的整數"},
+            {"capacity", null, "名額上限不能空白"},
+            {"tags", List.of("a", "b", "c", "d", "e", "f"), "最多可填寫 5 個自訂標籤"},
+            {"tags", List.of("字".repeat(17)), "每個自訂標籤最多 16 字元"},
+            {"tags", List.of(" "), "自訂標籤不能空白"},
+            {"tags", List.of("一\n二"), "自訂標籤不能包含換行"},
+            {"coverTheme", "invalid", "請選擇有效的預設封面"}
+        };
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        for (Object[] invalid : invalidValues) {
+            String field = (String) invalid[0];
+            var payload = validEventPayload();
+            payload.put(field, invalid[1]);
+            String errorField = field;
+            if ("tags".equals(field) && ((List<?>) invalid[1]).size() == 1) errorField = "tags[0]";
+            for (boolean update : new boolean[] {false, true}) {
+                var request = update ? put("/admin/events/" + target.getId()) : post("/admin/events");
+                mvc.perform(request.with(session).contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(payload)))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.errors['" + errorField + "']").value(invalid[2]));
+            }
+        }
+        // JSON 小數不得被自動截斷成整數；錯誤日期也必須回傳 400。
+        for (Object[] invalid : new Object[][] {{"capacity", 1.5}, {"startAt", "2028-02-30T12:00:00"}, {"startAt", "not-a-date"}}) {
+            var payload = validEventPayload();
+            payload.put((String) invalid[0], invalid[1]);
+            for (boolean update : new boolean[] {false, true}) {
+                var request = update ? put("/admin/events/" + target.getId()) : post("/admin/events");
+                mvc.perform(request.with(session).contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(payload))).andExpect(status().isBadRequest());
+            }
+        }
+        reloadFromDatabase();
+        assertEquals(originalCount, events.count());
+        assertEquals(originalTitle, events.findById(target.getId()).get().getTitle());
+        assertEquals(2, events.findById(target.getId()).get().getCapacity());
+    }
+
+    @Test
+    void createAndUpdateAcceptMaximumEventLengthsAndBothCapacityBoundaries() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        AdminTestSession session = new AdminTestSession(mvc, admin, PASSWORD);
+        Event target = createEvent(admin.getId(), 2);
+        var payload = validEventPayload();
+        payload.put("title", "名".repeat(100));
+        payload.put("description", "文".repeat(5000));
+        payload.put("hostName", "人".repeat(50));
+        payload.put("location", "址".repeat(255));
+        payload.put("tags", List.of("一".repeat(16), "二".repeat(16), "三".repeat(16), "四".repeat(16), "五".repeat(16)));
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        long count = events.count();
+        for (int capacity : new int[] {1, 50}) {
+            payload.put("capacity", capacity);
+            mvc.perform(post("/admin/events").with(session).contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(payload))).andExpect(status().isCreated());
+            mvc.perform(put("/admin/events/" + target.getId()).with(session).contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(payload))).andExpect(status().isOk());
+            reloadFromDatabase();
+            Event saved = events.findById(target.getId()).get();
+            assertEquals(capacity, saved.getCapacity());
+            assertEquals(5000, saved.getDescription().length());
+            assertEquals(84, saved.getCustomTags().length());
+        }
+        assertEquals(count + 2, events.count());
+    }
+
+    private java.util.Map<String, Object> validEventPayload() {
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei")).withNano(0);
+        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("title", "Validation Event");
+        body.put("description", "Description");
+        body.put("hostName", "Host");
+        body.put("location", "Taipei");
+        body.put("startAt", now.plusDays(3).toString());
+        body.put("endAt", now.plusDays(4).toString());
+        body.put("registrationDeadline", now.plusDays(2).toString());
+        body.put("capacity", 2);
+        body.put("beginnerFriendly", true);
+        body.put("coverTheme", "tavern");
+        body.put("tags", List.of("新手"));
+        return body;
+    }
+
+    @Test
+    void passwordApisRejectInvalidNewLengthsButLegacyPasswordsStillLogin() throws Exception {
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        // 每種舊密碼使用獨立會員，分別驗證會員與管理員登入入口。
+        for (String legacy : new String[] {"old123", "x".repeat(40)}) {
+            Member member = createMember();
+            member.setRole("ADMIN");
+            member.setPassword(passwordEncoder.encode(legacy));
+            reloadFromDatabase();
+            member = members.findById(member.getId()).get();
+            mvc.perform(post("/members/login").contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(java.util.Map.of("account", member.getAccount(), "password", legacy))))
+                    .andExpect(status().isOk());
+            AdminTestSession session = new AdminTestSession(mvc, member, legacy);
+            for (int length : new int[] {14, 31}) {
+                String password = "a".repeat(length);
+                var body = new java.util.LinkedHashMap<String, Object>();
+                body.put("password", password);
+                body.put("confirmPassword", password);
+                body.put("oldPassword", legacy);
+                mvc.perform(put("/members/" + member.getId() + "/password").with(session).header("X-Admin-Front", "1")
+                        .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.errors.password").value("新密碼長度必須是 15 到 30 個字元"));
+                body.put("token", "not-consumed");
+                mvc.perform(post("/members/reset-password").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(body))).andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.errors.password").value("新密碼長度必須是 15 到 30 個字元"));
+                body.put("account", "new-validation-account");
+                body.put("name", "Tester");
+                body.put("email", "validation@example.com");
+                mvc.perform(post("/members").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(body))).andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.errors.password").value("新密碼長度必須是 15 到 30 個字元"));
+            }
+            reloadFromDatabase();
+            member = members.findById(member.getId()).get();
+            assertTrue(passwordEncoder.matches(legacy, member.getPassword()));
+        }
+    }
+
+    @Test
+    void repeatedMemberLoginPersistsDistinctTokensAndLogoutOnlyRevokesItsOwnLogin() throws Exception {
+        Member member = createMember();
+        String[] accessTokens = new String[3];
+        String[] refreshTokens = new String[3];
+        java.util.Set<String> identifiers = new java.util.HashSet<>();
+        String loginBody = "{\"account\":\"" + member.getAccount() + "\",\"password\":\"" + PASSWORD + "\"}";
+        for (int index = 0; index < accessTokens.length; index++) {
+            MvcResult result = mvc.perform(post("/members/login").contentType(MediaType.APPLICATION_JSON)
+                    .content(loginBody)).andExpect(status().isOk()).andReturn();
+            String json = result.getResponse().getContentAsString();
+            accessTokens[index] = com.jayway.jsonpath.JsonPath.read(json, "$.accessToken");
+            refreshTokens[index] = com.jayway.jsonpath.JsonPath.read(json, "$.refreshToken");
+            assertTrue(identifiers.add(jwtService.parse(accessTokens[index]).getId()));
+            assertTrue(identifiers.add(jwtService.parse(refreshTokens[index]).getId()));
+            reloadFromDatabase();
+            assertTrue(tokens.findActiveByAccessTokenHashAndOwnerType(
+                    jwtService.hashToken(accessTokens[index]), AuthOwnerTypes.MEMBER).isPresent());
+        }
+        assertEquals(6, identifiers.size());
+        assertEquals(3, tokens.findByOwnerTypeAndOwnerIdAndRevoked(AuthOwnerTypes.MEMBER, member.getId(), (byte) 0).size());
+        mvc.perform(post("/members/logout").header("Authorization", "Bearer " + accessTokens[0])
+                .contentType(MediaType.APPLICATION_JSON).content("{\"refreshToken\":\"" + refreshTokens[0] + "\"}"))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        mvc.perform(get("/members/me").header("Authorization", "Bearer " + accessTokens[0]))
+                .andExpect(status().isUnauthorized());
+        for (int index = 1; index < accessTokens.length; index++) {
+            mvc.perform(get("/members/me").header("Authorization", "Bearer " + accessTokens[index]))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(member.getId()));
+        }
+    }
+
+    @Test
+    void registrationApiEnforcesNewAccountAndNameRules() throws Exception {
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("name", "玩家");
+        body.put("account", "player_1");
+        body.put("email", "member-fields-" + UUID.randomUUID() + "@example.com");
+        body.put("password", PASSWORD);
+        body.put("confirmPassword", PASSWORD);
+        long count = members.count();
+        for (String invalid : new String[] {"abc", "a".repeat(21), "玩家1234", "test@site", "has space", "test/name", "test+name"}) {
+            body.put("account", invalid);
+            mvc.perform(post("/members").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.account").isString());
+        }
+        body.put("account", "name-test");
+        body.put("name", "名".repeat(31));
+        mvc.perform(post("/members").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.name").value("姓名或暱稱最多 30 字元"));
+        assertEquals(count, members.count());
+        // 4 與 20 字元邊界，以及新允許的全部符號，都要能透過真正 API 建立。
+        for (String account : new String[] {"a.-_", "a".repeat(20)}) {
+            body.put("account", account);
+            body.put("name", "名".repeat(30));
+            body.put("email", "member-fields-" + UUID.randomUUID() + "@example.com");
+            mvc.perform(post("/members").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                    .andExpect(status().isCreated());
+            reloadFromDatabase();
+            Optional<Member> saved = members.findByAccountAndStatus(account, "ACTIVE");
+            assertTrue(saved.isPresent());
+            createdMemberIds.add(saved.get().getId());
+            assertEquals(30, saved.get().getName().length());
+        }
+        assertEquals(count + 2, members.count());
+    }
+
+    @Test
+    void legacyAccountsStillLoginAndProfileUpdatesUseNewNameLimit() throws Exception {
+        Member member = createMember();
+        String legacyAccount = "legacy@" + UUID.randomUUID();
+        member.setAccount(legacyAccount);
+        member.setName("舊".repeat(40));
+        member.setRole("ADMIN");
+        reloadFromDatabase();
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        mvc.perform(post("/members/login").contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(java.util.Map.of("account", legacyAccount, "password", PASSWORD))))
+                .andExpect(status().isOk());
+        AdminTestSession session = new AdminTestSession(mvc, member, PASSWORD);
+        mvc.perform(get("/members/me").with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("舊".repeat(40)));
+        for (String invalid : new String[] {" ", "名".repeat(31)}) {
+            mvc.perform(put("/members/" + member.getId() + "/profile").with(session).header("X-Admin-Front", "1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(java.util.Map.of("name", invalid, "email", member.getEmail()))))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.errors.name").isString());
+        }
+        mvc.perform(put("/members/" + member.getId() + "/profile").with(session).header("X-Admin-Front", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(java.util.Map.of("name", "名".repeat(30), "email", member.getEmail()))))
+                .andExpect(status().isOk());
+        reloadFromDatabase();
+        Member saved = members.findById(member.getId()).get();
+        assertEquals(legacyAccount, saved.getAccount());
+        assertEquals(30, saved.getName().length());
     }
 
     private void reloadFromDatabase() {

@@ -17,8 +17,8 @@ public class MemberPasswordResetRequest {
     private String token;
 
     @NotBlank(message = ResponseMessages.MEMBER_PASSWORD_REQUIRED)
-    // 調整：新密碼統一 15～72 字元；UTF-8 的 72 bytes 限制由 Service 檢查。
-    @Size(min = 15, max = 72, message = ResponseMessages.MEMBER_PASSWORD_SIZE)
+    // 調整：新密碼統一 15～30 字元；UTF-8 的 72 bytes 限制由 Service 檢查。
+    @Size(min = 15, max = 30, message = ResponseMessages.MEMBER_PASSWORD_SIZE)
     private String password;
 
     @NotBlank(message = ResponseMessages.MEMBER_CONFIRM_PASSWORD_REQUIRED)

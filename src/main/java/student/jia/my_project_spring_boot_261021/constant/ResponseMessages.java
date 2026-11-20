@@ -43,6 +43,8 @@ public final class ResponseMessages {
     // 20000 區間：資料庫寫入相關錯誤。
     // 調整：BCrypt 限制 UTF-8 bytes，不能只靠 @Size。
     public static final String MEMBER_PASSWORD_BYTES = "10028";
+    public static final String MEMBER_ACCOUNT_SIZE = "10029"; // 新帳號長度。
+    public static final String MEMBER_ACCOUNT_FORMAT = "10030"; // 新帳號允許字元。
     public static final String DATABASE_WRITE_FAILED    = "20000";
 
     // 30000 區間：HTTP request 相關錯誤。
@@ -88,18 +90,20 @@ public final class ResponseMessages {
         messages.put(MAIL_SUBJECT_MAX,      "信件標題不可超過 60 個字");
         messages.put(MAIL_CONTENT_REQUIRED, "信件內容必填");
         messages.put(MAIL_CONTENT_MAX,      "信件內容不可超過 1000 個字");
-        messages.put(MEMBER_NAME_REQUIRED,  "會員姓名必填");
-        messages.put(MEMBER_NAME_MAX,       "會員姓名不可超過 30 個字");
+        messages.put(MEMBER_NAME_REQUIRED,  "姓名或暱稱必填");
+        messages.put(MEMBER_NAME_MAX,       "姓名或暱稱最多 30 字元");
         messages.put(MEMBER_GENDER_REQUIRED, "會員性別必填");
         messages.put(MEMBER_GENDER_INVALID, "會員性別只能是 0、1、2");
+        messages.put(MEMBER_ACCOUNT_SIZE, "帳號長度必須是 4～20 字元");
+        messages.put(MEMBER_ACCOUNT_FORMAT, "帳號僅可使用英文字母、數字、底線（_）、連字號（-）與半形句點（.）");
         messages.put(MEMBER_ACCOUNT_REQUIRED, "會員帳號必填");
-        messages.put(MEMBER_ACCOUNT_MAX,    "會員帳號不可超過 30 個字");
+        messages.put(MEMBER_ACCOUNT_MAX,    "會員帳號最多 20 字元");
         messages.put(MEMBER_EMAIL_INVALID,  "會員 email 格式錯誤");
         messages.put(MEMBER_EMAIL_MAX,      "會員 email 不可超過 254 個字");
         messages.put(MEMBER_PASSWORD_REQUIRED, "會員密碼必填");
         // 調整：字元長度與 BCrypt bytes 分別提供提示。
-        messages.put(MEMBER_PASSWORD_BYTES, "密碼以 UTF-8 編碼後不可超過 72 bytes；中文通常每字占 3 bytes");
-        messages.put(MEMBER_PASSWORD_SIZE,  "新密碼長度必須是 15 到 72 個字元");
+        messages.put(MEMBER_PASSWORD_BYTES, "密碼以 UTF-8 編碼後不可超過 72 bytes；中文通常每字占 3 bytes。");
+        messages.put(MEMBER_PASSWORD_SIZE,  "新密碼長度必須是 15 到 30 個字元");
         messages.put(MEMBER_CONFIRM_PASSWORD_REQUIRED, "確認密碼必填");
         messages.put(MEMBER_CONFIRM_PASSWORD_NOT_MATCH, "確認密碼不一致");
         messages.put(MEMBER_ACCOUNT_EXISTS, "會員帳號已存在");

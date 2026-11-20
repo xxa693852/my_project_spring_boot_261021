@@ -45,12 +45,28 @@ function bindForm(form, names, path, resultId) {
         }
         const body = {};
         for (const key of names) body[key] = form.elements[key].value;
+        if (path === "profile") {
+            const nameError = DndMemberRules.name(body.name);
+            if (nameError) {
+                result.textContent = nameError;
+                document.getElementById("name-error").textContent = nameError;
+                form.elements.name.setAttribute("aria-invalid", "true");
+                form.elements.name.focus();
+                return;
+            }
+        }
         // 調整：新密碼檢查完整規則；舊密碼僅檢查 bytes。
         if (path === "password") {
             const passwordError = DndPasswordRules.message(body.password, true);
-            const oldPasswordError = DndPasswordRules.message(body.oldPassword, false);
-            if (passwordError || oldPasswordError) {
-                result.textContent = passwordError || oldPasswordError;
+            const oldPasswordError = !body.oldPassword.trim() ? "舊密碼必填" : DndPasswordRules.message(body.oldPassword, false);
+            const confirmationError = DndPasswordRules.confirmation(body.password, body.confirmPassword);
+            if (passwordError || oldPasswordError || confirmationError) {
+                const field = passwordError ? "password" : oldPasswordError ? "oldPassword" : "confirmPassword";
+                const detail = passwordError || oldPasswordError || confirmationError;
+                result.textContent = detail;
+                document.getElementById(field + "-error").textContent = detail;
+                form.elements[field].setAttribute("aria-invalid", "true");
+                form.elements[field].focus();
                 return;
             }
         }

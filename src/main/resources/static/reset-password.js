@@ -24,8 +24,9 @@ form.addEventListener("submit", async (event) => {
         form.elements.password.focus();
         return;
     }
-    if (password !== confirmPassword) {
-        message.textContent = "兩次輸入的密碼不一致。";
+    const confirmationError = DndPasswordRules.confirmation(password, confirmPassword);
+    if (confirmationError) {
+        message.textContent = confirmationError;
         form.elements.confirmPassword.focus();
         return;
     }

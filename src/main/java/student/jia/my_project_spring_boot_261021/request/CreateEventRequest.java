@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -20,18 +21,22 @@ import lombok.Setter;
 public class CreateEventRequest {
 
     @NotBlank(message = "活動名稱不能空白")
-    @Size(max = 100, message = "活動名稱最多100字")
+    @Size(max = 100, message = "活動名稱最多 100 字元")
+    @Pattern(regexp = "[^\\r\\n]*", message = "活動名稱不能包含換行")
     private String title;
 
-    @NotBlank(message = "活動描述不能為空") //不能為空白
+    @NotBlank(message = "活動介紹不能空白") //不能為空白
+    @Size(max = 5000, message = "活動介紹最多 5000 字元")
     private String description;
 
     @NotBlank(message = "主持人名稱不能空白")
-    @Size(max = 50, message = "主持人名稱超過字數限制")
+    @Size(max = 50, message = "主持人名稱最多 50 字元")
+    @Pattern(regexp = "[^\\r\\n]*", message = "主持人名稱不能包含換行")
     private String hostName;
 
     @NotBlank(message = "地點不能空白")
-    @Size(max = 255, message = "地點超過字數限制") 
+    @Size(max = 255, message = "地點最多 255 字元") 
+    @Pattern(regexp = "[^\\r\\n]*", message = "地點不能包含換行")
     private String location;
 
     @NotNull(message = "開始時間不能空白")
@@ -43,8 +48,9 @@ public class CreateEventRequest {
     @NotNull(message = "報名截止時間不能空白")
     private LocalDateTime registrationDeadline;
 
-    @NotNull(message = "人數上限不能空白")
-    @Min(value = 1, message = "人數上限至少1人")
+    @NotNull(message = "名額上限不能空白")
+    @Min(value = 1, message = "名額上限必須是 1～50 人的整數")
+    @Max(value = 50, message = "名額上限必須是 1～50 人的整數")
     private Integer capacity;
 
     @NotNull(message = "請指定是否新手友善")
@@ -55,7 +61,7 @@ public class CreateEventRequest {
 
     @Size(max = 5, message = "最多可填寫 5 個自訂標籤")
     private List<@NotBlank(message = "自訂標籤不能空白")
-            @Size(max = 16, message = "每個自訂標籤最多 16 字")
+            @Size(max = 16, message = "每個自訂標籤最多 16 字元")
             @Pattern(regexp = "[^\\r\\n]+", message = "自訂標籤不能包含換行") String> tags;
 
     // 單位為新台幣元。省略或傳入 null 時，由 Service 依免費活動處理。
@@ -66,11 +72,11 @@ public class CreateEventRequest {
 }
 // 欄位	Java 型別	驗證
 // title	String	必填，最多 100 字
-// description	String	必填
+// description	String	必填，最多 5000 字元
 // hostName	String	必填，最多 50 字
 // location	String	必填，最多 255 字
 // startAt	LocalDateTime	必填
 // endAt	LocalDateTime	必填
 // registrationDeadline	LocalDateTime	必填
-// capacity	Integer	必填，至少 1 人
+// capacity	Integer	必填，1～50 人
 // beginnerFriendly	Boolean	必填，可傳 false

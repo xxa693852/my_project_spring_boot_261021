@@ -36,13 +36,13 @@ class MemberInputValidationTests {
     @Test
     void newPasswordBoundariesAreConsistentAcrossRequests() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
-            for (int length : new int[] {14, 15, 72, 73}) {
+            for (int length : new int[] {14, 15, 30, 31}) {
                 String password = "a".repeat(length);
                 MemberPasswordUpdateRequest update = new MemberPasswordUpdateRequest();
                 update.setPassword(password);
                 MemberPasswordResetRequest reset = new MemberPasswordResetRequest();
                 reset.setPassword(password);
-                boolean valid = length >= 15 && length <= 72;
+                boolean valid = length >= 15 && length <= 30;
                 assertEquals(valid, factory.getValidator().validateProperty(registration(password), "password").isEmpty());
                 assertEquals(valid, factory.getValidator().validateProperty(update, "password").isEmpty());
                 assertEquals(valid, factory.getValidator().validateProperty(reset, "password").isEmpty());
@@ -76,7 +76,7 @@ class MemberInputValidationTests {
 
     @Test
     void acceptsExactly72Utf8BytesIncludingChinese() {
-        for (String password : new String[] {"a".repeat(72), "中".repeat(24)}) {
+        for (String password : new String[] {"a".repeat(30), "中".repeat(24)}) {
             service.register(registration(password));
             verify(encoder).encode(password);
         }
@@ -132,4 +132,55 @@ class MemberInputValidationTests {
         assertEquals(ResponseMessages.MEMBER_PASSWORD_BYTES, error.getMessageCode());
         verifyNoInteractions(encoder);
     }
+    @Test
+    void serviceRejectsOverlongNewPasswordsAtAllThreeEntryPoints() {
+        String password = "a".repeat(31);
+        MemberPasswordUpdateRequest update = new MemberPasswordUpdateRequest();
+        update.setPassword(password);
+        update.setConfirmPassword(password);
+        MemberPasswordResetRequest reset = new MemberPasswordResetRequest();
+        reset.setPassword(password);
+        reset.setConfirmPassword(password);
+        assertEquals(ResponseMessages.MEMBER_PASSWORD_SIZE,
+                assertThrows(MemberAccountExcption.class, () -> service.register(registration(password))).getMessageCode());
+        assertEquals(ResponseMessages.MEMBER_PASSWORD_SIZE,
+                assertThrows(MemberAccountExcption.class, () -> service.updatePassword(1L, update)).getMessageCode());
+        assertEquals(ResponseMessages.MEMBER_PASSWORD_SIZE,
+                assertThrows(MemberAccountExcption.class, () -> service.resetPassword(reset)).getMessageCode());
+        verifyNoInteractions(members, encoder, resetTokens);
+    }
+
+    @Test
+    void serviceRejectsInvalidAccountsAndNamesBeforeSaving() {
+        for (String account : new String[] {"abc", "a".repeat(21), "中文帳號", "user@name", "has space"}) {
+            MemberRegisterRequest request = registration("a".repeat(15));
+            request.setAccount(account);
+            assertThrows(MemberAccountExcption.class, () -> service.register(request));
+        }
+        MemberRegisterRequest request = registration("a".repeat(15));
+        request.setName("名".repeat(31));
+        assertEquals(ResponseMessages.MEMBER_NAME_MAX,
+                assertThrows(MemberAccountExcption.class, () -> service.register(request)).getMessageCode());
+        MemberUpdateRequest update = new MemberUpdateRequest();
+        update.setName(" ");
+        assertEquals(ResponseMessages.MEMBER_NAME_REQUIRED,
+                assertThrows(MemberAccountExcption.class, () -> service.updateProfile(1L, update)).getMessageCode());
+        verifyNoInteractions(members, encoder);
+    }
+
+    @Test
+    void requestValidationAcceptsAllAllowedAccountSymbolsAndLengthBoundaries() {
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+            for (String account : new String[] {"a._-", "a".repeat(20), "jia.123", "jia-123", "jia_123"}) {
+                MemberRegisterRequest request = registration("a".repeat(15));
+                request.setAccount(account);
+                request.setName("名".repeat(30));
+                assertTrue(factory.getValidator().validate(request).isEmpty());
+            }
+            MemberUpdateRequest update = new MemberUpdateRequest();
+            update.setName("名".repeat(31));
+            assertFalse(factory.getValidator().validateProperty(update, "name").isEmpty());
+        }
+    }
+
 }

@@ -70,6 +70,8 @@ public MemberService(MemberRepository memberRepository,
 //新增會員
 @Transactional 
 public  void register(MemberRegisterRequest request){
+        validateNewAccount(request.getAccount());
+        validateMemberName(request.getName());
         // 調整：三個新密碼入口共用規則，避免繞過畫面驗證。
         validateNewPassword(request.getPassword(), request.getConfirmPassword());
      // 1. 檢查兩次密碼是否相同
@@ -119,6 +121,7 @@ public  void register(MemberRegisterRequest request){
     // 更新交易內查出的會員姓名與信箱；方法沒有回傳值，JPA 在交易提交時儲存變更。
     @Transactional
     public void updateProfile(Long id,MemberUpdateRequest request){
+        validateMemberName(request.getName());
        
         // 1. 給repository找
         Optional<Member> member =  memberRepository.findByIdAndStatus(id, "ACTIVE");
@@ -399,12 +402,35 @@ public  void register(MemberRegisterRequest request){
 
     }
     
+    // 僅供新註冊使用，既有帳號登入時仍按原始帳號查詢，不強制套用新格式。
+    private void validateNewAccount(String account) {
+        if (account == null || account.isBlank()) {
+            throw new MemberAccountExcption("account", ResponseMessages.MEMBER_ACCOUNT_REQUIRED);
+        }
+        if (account.length() < 4 || account.length() > 20) {
+            throw new MemberAccountExcption("account", ResponseMessages.MEMBER_ACCOUNT_SIZE);
+        }
+        if (!account.matches("[A-Za-z0-9_.-]+")) {
+            throw new MemberAccountExcption("account", ResponseMessages.MEMBER_ACCOUNT_FORMAT);
+        }
+    }
+
+    // 註冊與會員資料修改共用姓名限制；資料庫保留原長度，不截斷舊會員資料。
+    private void validateMemberName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new MemberAccountExcption("name", ResponseMessages.MEMBER_NAME_REQUIRED);
+        }
+        if (name.length() > 30) {
+            throw new MemberAccountExcption("name", ResponseMessages.MEMBER_NAME_MAX);
+        }
+    }
+
     // 調整：傳統 if 集中驗證，錯誤交給既有 GlobalExceptionHandler。
     private void validateNewPassword(String password, String confirmPassword) {
         if (password == null || password.isBlank()) {
             throw new MemberAccountExcption("password", ResponseMessages.MEMBER_PASSWORD_REQUIRED);
         }
-        if (password.length() < 15 || password.length() > 72) {
+        if (password.length() < 15 || password.length() > 30) {
             throw new MemberAccountExcption("password", ResponseMessages.MEMBER_PASSWORD_SIZE);
         }
         validatePasswordBytes(password, "password");
