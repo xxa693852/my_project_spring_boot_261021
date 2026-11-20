@@ -29,6 +29,10 @@ import student.jia.my_project_spring_boot_261021.service.MemberService;
 
 
 
+/**
+ * 接收會員 API 請求，將輸入交給 MemberService，再回傳訊息或會員／Token 資料。
+ * @Valid 檢查 Request 的欄位註解；驗證或業務例外交給 GlobalExceptionHandler。
+ */
 @RestController //這個 Class 是一個 Web API 控制器；告訴 Spring 這個類別專門用來接收 HTTP 請求（如 GET、POST），並且直接把執行的結果「轉換成資料（如 JSON 或 XML）」傳回給前端，而不是去渲染 HTML 網頁
 @RequestMapping("/members")
 public class MemberController {
@@ -40,6 +44,7 @@ public class MemberController {
         this.memberService = memberService;
     }
     //單一會員ID查詢
+    // 以驗證後的登入者 ID 查詢自己，回傳不含密碼的 MemberResponse。
     @GetMapping("/me")
     public MemberResponse currentMember(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId) {
@@ -67,6 +72,7 @@ public class MemberController {
                 return new ApiResponse("會員註冊成功");
     }
 
+    // 將 JSON 轉成 Request 並驗證，再交給 Service 修改；正常完成才回傳成功訊息。
     @PutMapping ("/{id}/profile")
     @ResponseStatus (HttpStatus.OK)
     public ApiResponse updateProfile(
@@ -76,6 +82,7 @@ public class MemberController {
                 return  new ApiResponse("會員基本資料修改成功");
 
             }
+    // 接收舊密碼與新密碼資料，交給 Service 比對及更新；不在 Controller 直接操作資料庫。
     @PutMapping ("/{id}/password")
     @ResponseStatus (HttpStatus.OK)
     public  ApiResponse updatePassword(
@@ -107,6 +114,7 @@ public class MemberController {
         return new ApiResponse("會員帳號停用成功");
     }
     //忘記密碼
+    // 無論信箱是否查得到會員，都使用相同成功訊息，避免透過此 API 探查帳號是否存在。
     @PostMapping("/forgot-password")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse forgotPassword(@Valid @RequestBody MemberForgotPasswordRequest request){

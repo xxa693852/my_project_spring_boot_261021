@@ -16,6 +16,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+/**
+ * 負責簽發、解析 JWT，並計算 Token 雜湊與期限。
+ * JWT 驗證與資料庫登入紀錄檢查分開；資料庫撤銷狀態由呼叫端另外確認。
+ */
 @Service
 public class JwtService {
 

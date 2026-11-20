@@ -12,6 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import student.jia.my_project_spring_boot_261021.entity.Member;
 
+/**
+ * 會員資料存取介面，由 Spring Data JPA 依方法名稱或 @Query 產生查詢。
+ * Optional 代表可能查無資料；exists 開頭的方法回傳是否存在，並不回傳會員物件。
+ */
 public interface MemberRepository extends JpaRepository<Member, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
@@ -19,8 +23,10 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             UPDATE Member m SET m.notificationLineUserId = :lineUserId
             WHERE m.id = :id AND m.status = 'ACTIVE'
             """)
+    // 只更新啟用會員的通知用 LINE ID；回傳受影響筆數，0 代表沒有符合條件的會員。
     int updateNotificationLineUserId(@Param("id") Long id, @Param("lineUserId") String lineUserId);
 
+    // 依帳號、姓名或信箱包含關鍵字搜尋，回傳分頁結果。
     org.springframework.data.domain.Page<Member> findByAccountContainingOrNameContainingOrEmailContaining(
             String account, String name, String email, org.springframework.data.domain.Pageable pageable);
 
@@ -28,6 +34,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByEmail(String email);  // 透過電子郵件
 
+    // 判斷信箱是否被其他會員使用；排除目前修改資料的會員自己。
     boolean existsByEmailAndIdNot(String email, Long id);
 
     // 找出單一會員By Id
@@ -37,6 +44,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
   // 依會員 ID 和狀態查詢
     Optional<Member> findByIdAndStatus(Long id, String status);
 
+    // 查詢並鎖定啟用會員，讓同一會員的並行修改或報名依序執行。
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Member m WHERE m.id = :id AND m.status = 'ACTIVE'")
     Optional<Member> findActiveByIdForUpdate(@Param("id") Long id);
@@ -44,6 +52,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
   //會員忘記密碼用
   Optional<Member> findByEmailAndStatus(String email, String status);  
 
+  // 登入用帳號與狀態查詢；只找會員資料，密碼比對仍由 Service 負責。
   Optional<Member> findByAccountAndStatus(String account, String status);
 
     @Query(

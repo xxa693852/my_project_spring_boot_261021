@@ -7,6 +7,10 @@ import org.springframework.data.repository.query.Param;
 
 import student.jia.my_project_spring_boot_261021.entity.AuthToken;
 import java.util.List;
+/**
+ * 登入紀錄查詢介面，以 Token 雜湊查詢，資料庫不保存原始 Token。
+ * 下方 active 查詢只排除已撤銷與已刪除紀錄；期限仍須由呼叫端驗證。
+ */
 public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
 
     // 檢查 access token 是否仍存在、未登出、未被 refresh rotation 撤銷。
@@ -41,6 +45,7 @@ public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
             @Param("refreshTokenHash") String refreshTokenHash,
             @Param("ownerType") String ownerType
     );
+    // 列出指定持有者與撤銷狀態的登入紀錄，供停用會員時逐筆撤銷使用。
     List<AuthToken> findByOwnerTypeAndOwnerIdAndRevoked(
         String ownerType, Long ownerId, Byte revoked);
 

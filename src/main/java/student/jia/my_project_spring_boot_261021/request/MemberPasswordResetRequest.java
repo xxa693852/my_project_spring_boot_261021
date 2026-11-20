@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 
+/**
+ * 接收重設 Token、新密碼與確認密碼；Service 驗證 Token 期限及使用狀態。
+ */
 @Getter
 @Setter
 public class MemberPasswordResetRequest {

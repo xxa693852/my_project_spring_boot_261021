@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 
+/**
+ * 接收註冊資料；欄位註解檢查格式，帳號／信箱重複與密碼確認由 Service 檢查。
+ */
 @Getter
 @Setter 
 public class MemberRegisterRequest {

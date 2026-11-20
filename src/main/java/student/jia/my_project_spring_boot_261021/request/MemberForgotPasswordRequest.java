@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 
+/**
+ * 接收忘記密碼使用的信箱；Service 查到會員後建立重設連結並寄信。
+ */
 @Getter
 @Setter
 public class MemberForgotPasswordRequest {

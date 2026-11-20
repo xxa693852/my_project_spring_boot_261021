@@ -6,6 +6,9 @@ import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 接收舊密碼、新密碼與確認密碼；Service 驗證舊密碼後才更新密碼雜湊。
+ */
 @Getter
 @Setter
 public class MemberPasswordUpdateRequest {

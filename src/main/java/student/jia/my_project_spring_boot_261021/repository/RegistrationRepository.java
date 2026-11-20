@@ -10,6 +10,10 @@ import java.util.List;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 
+/**
+ * 報名資料查詢介面，提供個人紀錄、時段衝突與名額統計。
+ * 已確認報名與仍有效的待付款保留分開計算，供 Service 合計占用名額。
+ */
 public interface RegistrationRepository
         extends JpaRepository<Registration, Long> {
 
@@ -25,6 +29,7 @@ public interface RegistrationRepository
               AND e.startAt < :endAt AND e.endAt > :startAt
             ORDER BY e.startAt, e.id
             """)
+    // 查詢同會員的其他有效報名與待付款保留；兩活動僅首尾相接時不視為時段重疊。
     List<Event> findOverlappingEvents(
             @Param("memberId") Long memberId, @Param("eventId") Long eventId,
             @Param("startAt") LocalDateTime startAt, @Param("endAt") LocalDateTime endAt,

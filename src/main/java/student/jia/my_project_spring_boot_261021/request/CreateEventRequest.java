@@ -12,6 +12,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 
+/**
+ * 接收新增活動的 JSON 欄位；@Valid 觸發欄位格式檢查，時間先後關係由 EventService 檢查。
+ */
 @Getter
 @Setter 
 public class CreateEventRequest {

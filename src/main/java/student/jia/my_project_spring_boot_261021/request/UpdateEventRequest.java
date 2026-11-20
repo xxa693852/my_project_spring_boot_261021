@@ -11,6 +11,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 接收修改活動的 JSON 欄位；Service 另檢查活動狀態、時間與既有報名限制。
+ */
 @Getter
 @Setter
 public class UpdateEventRequest {

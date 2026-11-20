@@ -31,6 +31,10 @@ import student.jia.my_project_spring_boot_261021.constant.AuthOwnerTypes;
 import student.jia.my_project_spring_boot_261021.exception.AuthException;
 
 
+/**
+ * 會員業務流程：註冊、登入、資料修改、停用與密碼重設。
+ * 查詢交給 Repository；驗證失敗時拋出例外，由 GlobalExceptionHandler 組成錯誤回應。
+ */
 @Service
 public class MemberService {
     
@@ -112,6 +116,7 @@ public  void register(MemberRegisterRequest request){
     return member.get();
     }
     //修改會員資料
+    // 更新交易內查出的會員姓名與信箱；方法沒有回傳值，JPA 在交易提交時儲存變更。
     @Transactional
     public void updateProfile(Long id,MemberUpdateRequest request){
        
@@ -168,6 +173,7 @@ public  void register(MemberRegisterRequest request){
         targetMember.setPassword(this.passwordEncoder.encode(request.getPassword()));
     }
 
+  // 驗證帳密後回傳 TokenResponse：原始雙 Token 提供給前端，資料庫只儲存雜湊與期限。
 @Transactional
   public TokenResponse login(MemberLoginRequest request) {
     // 調整：登入保留既有最短長度，僅阻擋超過 BCrypt 上限的輸入。
@@ -300,7 +306,7 @@ public  void register(MemberRegisterRequest request){
 
 
 
-        // 3. 把產出的rawToken存在password_reset_tokens資料表
+        // 3. 將 rawToken 的雜湊存入 password_reset_tokens；不儲存原始 Token。
         // 儲存 token hash、會員 id、過期時間與未使用狀態。
         // save 成功後，後續 resetPassword 才能用 token hash 查回這筆紀錄。
         passwordResetTokenRepository.save(new PasswordResetToken(targetMember.getId(), tokenHash, expiresAt));
@@ -327,10 +333,11 @@ public  void register(MemberRegisterRequest request){
                 此連結將在 %d 分鐘後失效，若您沒有申請重設密碼，請忽略此信。
                 """.formatted(resetLink, passwordResetTokenMinutes);
 
-        // 寄信失敗時 MailService 會丟 MailException，GlobalExceptionHandler 會轉成統一 API 錯誤回應。
+        // 呼叫 MailService 寄信；目前 GlobalExceptionHandler 沒有專門處理寄信例外，不能假設一定回傳 ApiResponse。
         mailService.sendEmail(targetMember.getEmail(), "重設會員密碼", content);
     }
       // 重設密碼頁面驗證token
+    // 回傳 Token 是否仍可使用；只做查詢，不消耗 Token，也不修改密碼。
     public boolean isPasswordResetTokenValid(String token) {
         if (token == null || token.isBlank()) {
             return false;
@@ -345,10 +352,12 @@ public  void register(MemberRegisterRequest request){
         SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
+    // 依既有 LINE UID 查詢回傳 Optional<Member>；查無資料時由呼叫端決定如何處理。
     public  Optional<Member> findByLineUid(String lindUid){
         return memberRepository.findOneByLineUidAndStatus(lindUid);
     }
     //重設密碼
+    // 驗證重設 Token 後更新密碼雜湊並將 Token 作廢；失敗時拋出會員欄位或查無資料例外。
     @Transactional
     public void resetPassword(MemberPasswordResetRequest request) {
         // 調整：三個新密碼入口共用規則，避免繞過畫面驗證。

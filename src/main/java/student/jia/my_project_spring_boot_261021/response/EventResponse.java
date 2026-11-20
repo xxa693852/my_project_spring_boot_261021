@@ -7,6 +7,9 @@ import java.util.List;
 import lombok.Getter;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 
+/**
+ * 將活動資料與報名／保留人數整理成前端回應，提供名額與可報名狀態。
+ */
 @Getter
 public class EventResponse {
 

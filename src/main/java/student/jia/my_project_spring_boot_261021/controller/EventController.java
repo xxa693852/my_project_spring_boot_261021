@@ -35,6 +35,10 @@ import student.jia.my_project_spring_boot_261021.entity.Event;
 
 
 
+/**
+ * 管理員活動 API 入口；登入者 ID 由 AuthInterceptor 放入請求屬性。
+ * 內部的 PublicEventController 另提供玩家使用的公開活動查詢。
+ */
 @RestController
 @RequestMapping("/admin/events")
 public class EventController {
@@ -47,6 +51,7 @@ public class EventController {
 
 
 
+    // 從請求屬性取得登入者，從 JSON 取得活動資料；Service 驗證與儲存成功才回傳 HTTP 201。
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse create(
@@ -85,6 +90,7 @@ public class EventController {
         return responses;
     }
 
+    // 接收分頁與搜尋條件，回傳當頁活動及總筆數；實際查詢條件由 Service 整理。
     @GetMapping("/page")
     public EventPageResponse findPage(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
@@ -142,6 +148,7 @@ public class EventController {
         return new ApiResponse("活動已取消");
     }
 
+    // 將 hidden 參數交給 Service，成功後依隱藏或恢復顯示回傳訊息。
     @PutMapping("/{eventId}/list-visibility")
     public ApiResponse changeListVisibility(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
@@ -153,6 +160,7 @@ public class EventController {
         return new ApiResponse("已恢復在公開列表顯示。");
     }
 
+    // 查詢取消通知的投遞結果，並不在此 API 當場寄送通知。
     @GetMapping("/{eventId}/notifications")
     public List<Delivery> cancellationNotifications(
             @RequestAttribute(name = AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
@@ -184,6 +192,7 @@ public class EventController {
             return responses;
         }
 
+        // 接收分頁與搜尋條件，回傳當頁活動及總筆數；實際查詢條件由 Service 整理。
         @GetMapping("/page")
         public EventPageResponse findPage(@RequestParam(name = "page", defaultValue = "1") int page,
                 @RequestParam(name = "q", required = false) String keyword,

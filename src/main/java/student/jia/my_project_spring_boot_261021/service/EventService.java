@@ -28,6 +28,10 @@ import student.jia.my_project_spring_boot_261021.response.EventResponse;
 import student.jia.my_project_spring_boot_261021.response.EventPageResponse;
 
 import org.springframework.transaction.annotation.Isolation;
+/**
+ * 活動業務流程：管理員維護活動、玩家查詢活動，以及計算名額與回應資料。
+ * 修改交易內查出的 Entity 時，JPA 會在交易提交時偵測變更並寫入資料庫。
+ */
 @Service
 public class EventService {
 
@@ -57,6 +61,7 @@ public class EventService {
     }
 
     //管理員新增活動
+    // 檢查管理員與活動時間，建立活動並回傳儲存後的 Event；Controller 另外回傳成功訊息。
     @Transactional
     public Event create(
             Long memberId,
@@ -138,17 +143,19 @@ public class EventService {
         }
 
 
+        // 回傳管理員活動分頁；先在資料庫篩選，再計算總筆數與取出指定頁。
         @Transactional(readOnly = true)
         public EventPageResponse findAdminPage(Long memberId, int page, String keyword, boolean editableOnly) {
             validateAdmin(memberId);
             PageRequest pageRequest = eventPageRequest(page, ADMIN_PAGE_SIZE,
                     Sort.Direction.DESC, "createdAt");
-            // Filter before pagination so the result count covers all matching events.
+            // 先套用搜尋條件再分頁，總筆數才會涵蓋所有符合條件的活動。
             LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
             Page<Event> matches = eventRepository.searchAdmin(eventKeywordPattern(keyword), editableOnly, now, pageRequest);
             return toEventPageResponse(matches, page);
         }
 
+    // 先確認管理員與活動存在，再回傳該活動取消通知的投遞紀錄。
     @Transactional(readOnly = true)
     public List<CancellationNotificationQueue.Delivery> findCancellationNotifications(Long memberId, Long eventId) {
         findById(memberId, eventId);
@@ -300,7 +307,9 @@ public class EventService {
         updatePresentation(targetEvent, request.getCoverTheme(), request.getTags());
 
         
-    }   //更新圖片
+    }   // 下方方法共用封面主題與標籤的更新邏輯。
+    // 新增與修改活動共用：儲存封面主題識別值與標籤，不處理圖片上傳。
+    // null 表示保留原設定；空標籤清單會清除標籤，非空清單會去除頭尾空白與重複值。
     private void updatePresentation(Event event, String coverTheme, List<String> tags) {
        
         if (coverTheme != null) {
@@ -379,6 +388,7 @@ public class EventService {
 
 
         // 玩家查詢活動列表
+    // 依關鍵字、日期、新手與可報名條件回傳公開分頁；查詢截止日包含當日整天。
     @Transactional(readOnly = true)
     public EventPageResponse findPublicPage(int page, String keyword, LocalDate from, LocalDate through,
             boolean beginnerOnly, boolean availableOnly) {
@@ -405,6 +415,7 @@ public class EventService {
         return toEventPageResponse(matches, page);
     }
 
+    // 將關鍵字轉成 LIKE 搜尋樣式；空白回傳 null，特殊字元跳脫後以一般文字搜尋。
     private String eventKeywordPattern(String keyword) {
         String pattern = null;
         if (keyword != null && !keyword.isBlank()) {
@@ -418,6 +429,7 @@ public class EventService {
         return pattern;
     }
 
+    // 檢查頁碼並建立分頁條件；畫面從第 1 頁開始，JPA 的索引則從 0 開始。
     private PageRequest eventPageRequest(int page, int pageSize, Sort.Direction direction, String sortField) {
         if (page < 1) {
             throw new IllegalArgumentException("頁碼必須從 1 開始");
@@ -430,6 +442,7 @@ public class EventService {
         return PageRequest.of(page - 1, pageSize, direction, sortField, "id");
     }
 
+    // 將當頁 Event 逐筆轉為 EventResponse，並保留總頁數與總筆數。
     private EventPageResponse toEventPageResponse(Page<Event> eventPage, int page) {
         List<EventResponse> responses = new ArrayList<>();
         for (Event event : eventPage) {
@@ -438,12 +451,14 @@ public class EventService {
         return new EventPageResponse(responses, page, eventPage.getTotalPages(), eventPage.getTotalElements());
     }
 
+    // 回傳開放、未從列表隱藏且尚未結束的活動，依開始時間及 ID 排序。
     @Transactional(readOnly = true)
     public List<Event> findPublicEvents() {
         return eventRepository.findByStatusAndHiddenFromPublicListFalseAndEndAtAfterOrderByStartAtAscIdAsc(
                 "OPEN", LocalDateTime.now(ZoneId.of("Asia/Taipei")));
     }
 
+    // 管理員調整活動在公開列表的顯示；不會改變活動狀態或直接取消報名。
     @Transactional
     public void changeListVisibility(Long memberId, Long eventId, boolean hidden) {
         validateAdmin(memberId);
@@ -460,6 +475,7 @@ public class EventService {
     }
 
     // 玩家查詢活動詳情
+    // 依 ID 回傳可公開查詢狀態的活動；詳情查詢不以列表隱藏欄位篩選。
     @Transactional(readOnly = true)
     public Event findPublicEventById(Long eventId) {
         Event event = eventRepository.findById(eventId).orElse(null);
@@ -469,12 +485,14 @@ public class EventService {
         return event;
     }
 
+    // 只判斷活動狀態是否允許公開查看詳情，不代表目前仍可報名。
     static boolean isPublicEvent(Event event) {
         return "OPEN".equals(event.getStatus()) || "CLOSED".equals(event.getStatus())
                 || "CANCELLED".equals(event.getStatus());
     }
 
         // 查詢有效報名人數，組成活動回應
+    // 統計已確認報名與有效待付款保留，回傳含名額資訊的 EventResponse。
     @Transactional(readOnly = true)
     public EventResponse toEventResponse(Event event) {
 

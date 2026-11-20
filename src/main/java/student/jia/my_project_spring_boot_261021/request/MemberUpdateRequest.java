@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import student.jia.my_project_spring_boot_261021.constant.ResponseMessages;
 
+/**
+ * 接收會員姓名與信箱的修改資料；不包含密碼，密碼使用獨立的修改請求。
+ */
 @Getter
 @Setter 
 public class MemberUpdateRequest {

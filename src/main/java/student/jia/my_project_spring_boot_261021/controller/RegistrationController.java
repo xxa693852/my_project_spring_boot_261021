@@ -20,6 +20,10 @@ import student.jia.my_project_spring_boot_261021.response.ApiResponse;
 import student.jia.my_project_spring_boot_261021.response.RegistrationResponse;
 import student.jia.my_project_spring_boot_261021.service.RegistrationService;
 
+/**
+ * 個人報名 API 入口：報名、查詢與取消都交給 RegistrationService。
+ * 登入者 ID 取自驗證後的請求屬性，避免直接相信前端指定的會員身分。
+ */
 @RestController
 @RequestMapping("/registration")
 public class RegistrationController {

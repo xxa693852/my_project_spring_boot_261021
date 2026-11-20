@@ -15,6 +15,10 @@ import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
 
+/**
+ * 活動查詢與搜尋介面；Page 回傳當頁內容與總筆數，List 則回傳查詢結果清單。
+ * 需要修改或檢查名額的流程使用鎖定查詢，鎖會持續到呼叫端交易結束。
+ */
 public interface EventRepository extends JpaRepository<Event, Long> {
 
 
@@ -30,6 +34,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // 查詢指定狀態的活動，開始時間由近到遠排列
 List<Event> findByStatusOrderByStartAtAsc(String status);
 
+    // 公開列表用：排除隱藏與已結束活動，並以開始時間、ID 固定排序。
     List<Event> findByStatusAndHiddenFromPublicListFalseAndEndAtAfterOrderByStartAtAscIdAsc(
             String status, LocalDateTime now);
 
@@ -51,6 +56,7 @@ List<Event> findByStatusOrderByStartAtAsc(String status);
                            OR (r.status = 'PENDING_PAYMENT' AND r.paymentExpiresAt > :now)))
               ))
             """)
+    // 公開搜尋會先套用顯示、日期與報名條件再分頁；可報名條件也計入有效付款保留。
     Page<Event> searchPublic(@Param("keyword") String keyword,
             @Param("startFrom") LocalDateTime from, @Param("until") LocalDateTime until,
             @Param("beginnerOnly") boolean beginnerOnly, @Param("availableOnly") boolean availableOnly,
@@ -64,6 +70,7 @@ List<Event> findByStatusOrderByStartAtAsc(String status);
                    OR LOWER(e.hostName) LIKE LOWER(:keyword) ESCAPE '!')
               AND (:editableOnly = false OR (e.status = 'OPEN' AND e.startAt > :now))
             """)
+    // 管理員搜尋包含主持人關鍵字；editableOnly 限制為開放且尚未開始的活動。
     Page<Event> searchAdmin(@Param("keyword") String keyword,
             @Param("editableOnly") boolean editableOnly, @Param("now") LocalDateTime now,
             Pageable pageable);

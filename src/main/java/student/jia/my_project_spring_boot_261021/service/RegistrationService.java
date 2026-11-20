@@ -27,6 +27,11 @@ import student.jia.my_project_spring_boot_261021.repository.MemberRepository;
 import student.jia.my_project_spring_boot_261021.repository.RegistrationRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
+/**
+ * 處理免費報名、付費名額保留、個人報名查詢與取消。
+ * 報名時先鎖會員、再鎖活動，讓同時送出的請求依序檢查時段與名額。
+ * 查無資料拋出 ResourceNotFoundException；條件不符則拋出參數或時段衝突例外。
+ */
 @Service
 public class RegistrationService {
 
@@ -68,6 +73,7 @@ public class RegistrationService {
     }
 
     // 只有付款入口會傳入商店編號。免費 API 仍只接受免費場次。
+    // 回傳付款訂單與保留期限；共用內部報名流程，避免付款與免費報名有不同的名額檢查。
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public PaymentReservation reserveForPayment(Long memberId, Long eventId, String merchantId, Integer expectedFee) {
         return register(memberId, eventId, merchantId, expectedFee);
@@ -264,6 +270,7 @@ public class RegistrationService {
     }
 
     // 取消自己對某場活動的報名
+    // 取消個人報名並更新最新付款狀態；交易提交時儲存變更，本方法不直接呼叫金流退款。
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cancel(Long memberId, Long eventId) {
 

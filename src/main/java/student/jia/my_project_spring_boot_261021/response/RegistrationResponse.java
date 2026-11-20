@@ -7,6 +7,10 @@ import lombok.Getter;
 import student.jia.my_project_spring_boot_261021.entity.Registration;
 import student.jia.my_project_spring_boot_261021.entity.Event;
 
+/**
+ * 將報名、活動與付款狀態組合成回應；計算畫面上的逾期狀態與可取消提示。
+ * 建立回應只整理顯示資料，不會因此修改資料庫中的報名狀態。
+ */
 @Getter
 public class RegistrationResponse {
 
@@ -50,7 +54,7 @@ public class RegistrationResponse {
             this.location = event.getLocation();
             this.eventStatus = event.getStatus();
             this.registrationDeadline = event.getRegistrationDeadline();
-            // The server remains the authority for cancellation eligibility.
+            // 此欄位供畫面提示；真正取消時，Service 仍會重新檢查資格與截止時間。
             this.canCancel = ("REGISTERED".equals(this.status) || "PENDING_PAYMENT".equals(this.status))
                     && now.isBefore(event.getRegistrationDeadline());
         }
