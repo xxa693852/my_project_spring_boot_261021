@@ -1,4 +1,5 @@
 async function updateLineNotificationPrompt() {
+    await DndAuth.ready;
     const prompt = document.getElementById("line-notification-prompt");
     if (!prompt || !DndAuth.session()) return;
     try {

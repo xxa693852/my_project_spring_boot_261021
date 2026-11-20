@@ -119,6 +119,7 @@ function render(registration) {
     list.append(card);
 }
 async function loadRegistrations() {
+    await DndAuth.ready;
     if (requireLogin()) return;
     retry.hidden = true;
     searchForm.hidden = pagination.hidden = true;

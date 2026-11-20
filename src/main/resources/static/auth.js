@@ -2,7 +2,10 @@
     const KEY = "dnd.session";
     let queue = Promise.resolve();
     let profilePromise;
+    const ready = window.DndAdmin?.ready() || Promise.resolve();
     function session() {
+        const admin = window.DndAdmin?.frontSession();
+        if (admin) return admin;
         try {
             const saved = sessionStorage.getItem(KEY) || localStorage.getItem(KEY);
             const tokens = JSON.parse(saved);
@@ -37,7 +40,7 @@
     }
     // Only permit these local pages as login destinations.
     function destination(value) {
-        return /^\/(events\.html(?:\?(?:page=[1-9]\d*(?:&event=[1-9]\d*)?|event=[1-9]\d*))?|admin-(?:events|members)\.html|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
+        return /^\/(events\.html(?:\?(?:page=[1-9]\d*(?:&event=[1-9]\d*)?|event=[1-9]\d*))?|member-settings\.html|my-registrations\.html|event-detail\.html\?id=[1-9]\d*)$/.test(value || "")
             ? value : "/events.html";
     }
     function loginUrl() {
@@ -51,6 +54,7 @@
             error.status = 401;
             throw error;
         }
+        if (current.adminSession) return window.DndAdmin.memberRequest(path, options);
         const storage = sessionStorage.getItem(KEY) ? sessionStorage : localStorage;
         const headers = new Headers(options.headers);
         headers.set("Authorization", "Bearer " + current.accessToken);
@@ -79,7 +83,8 @@
         queue = result.catch(() => {});
         return result;
     }
-    function request(path, options) {
+    async function request(path, options) {
+        await ready;
         const loginId = session()?.loginId;
         return withSessionLock(() => {
             if (session()?.loginId !== loginId) {
@@ -110,6 +115,14 @@
     }
     function logout() {
         return withSessionLock(async () => {
+            // 先清除伺服器後台 Session；不能因會員 JWT 過期而跳過這個步驟。
+            const signedOut = await fetch("/members/logout-session", {
+                method: "POST", credentials: "same-origin", cache: "no-store",
+                headers: { "X-Session-Logout": "1" }
+            });
+            if (!signedOut.ok) throw new Error("無法完成登出，請稍後再試。");
+            window.DndAdmin?.signedOut();
+            if (!session()) { clear(); return; }
             // Refresh first if necessary, so the logout body contains the latest token.
             const verified = await perform("/registration");
             if (verified.status === 401) { clear(); return; }
@@ -123,6 +136,11 @@
             }
             clear();
         });
+    }
+    function refreshIdentity() {
+        profilePromise = undefined;
+        const nav = document.getElementById("member-nav");
+        if (nav) renderNav(nav);
     }
     function renderNav(container) {
         container.replaceChildren();
@@ -141,6 +159,8 @@
         settings.textContent = "會員設定";
         if (location.pathname === settings.pathname) settings.setAttribute("aria-current", "page");
         container.append(settings);
+        // 只由已通過後台 Session 驗證的共用模組加入返回入口。
+        window.DndAdmin?.renderReturnLink(container);
         if (!session()) {
             const link = document.createElement("a");
             link.href = loginUrl();
@@ -162,23 +182,11 @@
             catch (error) { message.textContent = error.message; button.disabled = false; }
         });
         container.append(status, button, message);
-        currentMember().then(member => {
-            if (member.role !== "ADMIN" || !session()) return;
-            const link = document.createElement("a");
-            link.href = "/admin-events.html";
-            link.textContent = "活動管理";
-            if (location.pathname === link.pathname) link.setAttribute("aria-current", "page");
-            container.append(link);
-            const members = document.createElement("a");
-            members.href = "/admin-members.html";
-            members.textContent = "會員管理";
-            if (location.pathname === members.pathname) members.setAttribute("aria-current", "page");
-            container.append(members);
-        }).catch(error => {
+        currentMember().catch(error => {
             if (error.status === 401 && !session()) renderNav(container);
         });
     }
-    window.DndAuth = { session, save, clear, destination, loginUrl, request, errorMessage, renderNav, currentMember };
+    window.DndAuth = { session, save, clear, destination, loginUrl, request, errorMessage, renderNav, currentMember, logout, ready, refreshIdentity };
     const header = document.querySelector(".site-header");
     if (header) {
         new ResizeObserver(() => {

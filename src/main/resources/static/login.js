@@ -26,6 +26,7 @@ form.addEventListener("submit", async (event) => {
         if (!response.ok) {
             throw new Error(await DndAuth.errorMessage(response, "登入失敗，請確認帳號與密碼。"));
         }
+        window.DndAdmin?.signedOut();
         DndAuth.save(await response.json(), form.elements.remember.checked);
         form.elements.password.value = "";
         const target = new URLSearchParams(location.search).get("returnTo");

@@ -77,6 +77,7 @@ function confirmEventPayment() {
 }
 
 async function loadEvent() {
+    await DndAuth.ready;
     register.hidden = cancel.hidden = login.hidden = true;
     section.hidden = true;
     if (!/^[1-9]\d*$/.test(eventId || "")) {

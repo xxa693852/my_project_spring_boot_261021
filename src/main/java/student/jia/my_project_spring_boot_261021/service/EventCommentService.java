@@ -45,6 +45,17 @@ public class EventCommentService {
 
     @Transactional(readOnly = true)
     public CommentPage list(Long eventId, Long memberId, int page) {
+        // 會員 API 一律只提供會員視角，不能因資料庫角色為 ADMIN 而取得隱藏留言。
+        return list(eventId, memberId, page, false);
+    }
+
+    @Transactional(readOnly = true)
+    public CommentPage listForAdmin(Long eventId, Long memberId, int page) {
+        // 僅由通過後台 Session 驗證的 Controller 呼叫。
+        return list(eventId, memberId, page, true);
+    }
+
+    private CommentPage list(Long eventId, Long memberId, int page, boolean adminView) {
         if (page < 1 || page > Integer.MAX_VALUE / PAGE_SIZE) {
             throw new IllegalArgumentException("留言頁碼超出範圍。");
         }
@@ -56,7 +67,7 @@ public class EventCommentService {
             member = members.findByIdAndStatus(memberId, "ACTIVE").orElse(null);
         }
         boolean canWrite = member != null && !member.isSuspendedAt(now);
-        boolean admin = canWrite && "ADMIN".equals(member.getRole());
+        boolean admin = adminView && canWrite && "ADMIN".equals(member.getRole());
 
         PageRequest request = PageRequest.of(page - 1, PAGE_SIZE);
         Page<EventComment> results;
@@ -73,9 +84,9 @@ public class EventCommentService {
             }
             items.add(new CommentView(comment.getId(), comment.getAuthor().getName(),
                     comment.getBody(), comment.getCreatedAt(),
-                    open && canWrite && memberId.equals(comment.getAuthor().getId()), reason));
+                    !admin && open && canWrite && memberId.equals(comment.getAuthor().getId()), reason));
         }
-        return new CommentPage(items, open, open && canWrite, admin, results.hasNext(), results.getTotalPages());
+        return new CommentPage(items, open, !admin && open && canWrite, admin, results.hasNext(), results.getTotalPages());
     }
 
     @Transactional

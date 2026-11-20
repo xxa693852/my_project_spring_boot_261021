@@ -57,6 +57,7 @@
     });
 
     async function initialize() {
+    await DndAuth.ready;
         if (!DndAuth.session()) return;
         try {
             render(await request(""));

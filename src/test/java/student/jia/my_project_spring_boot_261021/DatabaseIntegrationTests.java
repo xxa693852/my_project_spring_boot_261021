@@ -203,7 +203,7 @@ class DatabaseIntegrationTests {
         Member admin = createMember();
         admin.setRole("ADMIN");
         members.saveAndFlush(admin);
-        String authorization = bearer(login(admin));
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
         Member attending = createMember();
         Member previouslyCancelled = createMember();
         Event event = createEvent(admin.getId(), 3);
@@ -212,15 +212,15 @@ class DatabaseIntegrationTests {
         registrationService.cancel(previouslyCancelled.getId(), event.getId());
         reloadFromDatabase();
 
-        mvc.perform(delete("/admin/events/" + event.getId()).header("Authorization", authorization))
+        mvc.perform(delete("/admin/events/" + event.getId()).with(adminSession))
                 .andExpect(status().isOk());
         reloadFromDatabase();
         assertEquals("CANCELLED", events.findById(event.getId()).orElseThrow().getStatus());
         assertEquals(0L, registrations.countByEventIdAndStatus(event.getId(), "REGISTERED"));
-        mvc.perform(delete("/admin/events/" + event.getId()).header("Authorization", authorization))
+        mvc.perform(delete("/admin/events/" + event.getId()).with(adminSession))
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/admin/events/" + event.getId() + "/notifications")
-                .header("Authorization", authorization))
+                .with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].memberId").value(attending.getId().intValue()))
@@ -232,7 +232,7 @@ class DatabaseIntegrationTests {
         Member admin = createMember();
         admin.setRole("ADMIN");
         members.saveAndFlush(admin);
-        String authorization = bearer(login(admin));
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
         Event legacyEvent = createEvent(admin.getId(), 2);
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei")).withNano(0);
         String body = """
@@ -257,7 +257,7 @@ class DatabaseIntegrationTests {
         String presentation = """
                 , "coverTheme": "forest", "tags": [" 劇情向 ", "提供預製角色", "劇情向"]
                 """;
-        mvc.perform(post("/admin/events").header("Authorization", authorization)
+        mvc.perform(post("/admin/events").with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(body.formatted(presentation)))
                 .andExpect(status().isCreated());
         reloadFromDatabase();
@@ -277,28 +277,28 @@ class DatabaseIntegrationTests {
                 .andExpect(jsonPath("$[*].coverTheme", hasItem("forest")))
                 .andExpect(jsonPath("$[*].tags[*]", hasItem("提供預製角色")));
 
-        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+        mvc.perform(put("/admin/events/" + created.getId()).with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(body.formatted("")))
                 .andExpect(status().isOk());
         reloadFromDatabase();
-        mvc.perform(get("/admin/events/" + created.getId()).header("Authorization", authorization))
+        mvc.perform(get("/admin/events/" + created.getId()).with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.coverTheme").value("forest"))
                 .andExpect(jsonPath("$.tags.length()").value(2));
 
         String invalid = ", \"coverTheme\": \"unknown\", \"tags\": [\"12345678901234567\"]";
-        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+        mvc.perform(put("/admin/events/" + created.getId()).with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(body.formatted(invalid)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.coverTheme").exists());
         String tooMany = ", \"tags\": [\"1\",\"2\",\"3\",\"4\",\"5\",\"6\"]";
-        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+        mvc.perform(put("/admin/events/" + created.getId()).with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(body.formatted(tooMany)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.tags").exists());
 
         String clear = ", \"coverTheme\": \"castle\", \"tags\": []";
-        mvc.perform(put("/admin/events/" + created.getId()).header("Authorization", authorization)
+        mvc.perform(put("/admin/events/" + created.getId()).with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(body.formatted(clear)))
                 .andExpect(status().isOk());
         reloadFromDatabase();
@@ -313,7 +313,7 @@ class DatabaseIntegrationTests {
         Member admin = createMember();
         admin.setRole("ADMIN");
         members.saveAndFlush(admin);
-        TokenResponse adminLogin = login(admin);
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
         TokenResponse memberLogin = login(createMember());
         List<Long> ids = new ArrayList<>();
         for (int index = 0; index < 12; index++) {
@@ -329,33 +329,33 @@ class DatabaseIntegrationTests {
         }
         reloadFromDatabase();
 
-        mvc.perform(get("/admin/events/page").header("Authorization", bearer(adminLogin)))
+        mvc.perform(get("/admin/events/page").with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(1))
                 .andExpect(jsonPath("$.events.length()").value(10))
                 .andExpect(jsonPath("$.events[0].id").value(ids.get(11).intValue()))
                 .andExpect(jsonPath("$.events[9].id").value(ids.get(2).intValue()));
         mvc.perform(get("/admin/events/page").param("page", "2")
-                .header("Authorization", bearer(adminLogin)))
+                .with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.events[0].id").value(ids.get(1).intValue()))
                 .andExpect(jsonPath("$.events[1].id").value(ids.get(0).intValue()));
         mvc.perform(get("/admin/events/page").param("keyword", "admin search 100%_")
-                .header("Authorization", bearer(adminLogin)))
+                .with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalEvents").value(2));
         mvc.perform(get("/admin/events/page").param("keyword", "admin search 100%_")
-                .param("editableOnly", "true").header("Authorization", bearer(adminLogin)))
+                .param("editableOnly", "true").with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalEvents").value(1))
                 .andExpect(jsonPath("$.events[0].id").value(ids.get(0).intValue()));
         mvc.perform(get("/admin/events/page").param("page", "0")
-                .header("Authorization", bearer(adminLogin)))
+                .with(adminSession))
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/admin/events/page").header("Authorization", bearer(memberLogin)))
-                .andExpect(status().isBadRequest());
-        mvc.perform(get("/admin/events").header("Authorization", bearer(adminLogin)))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/admin/events").with(adminSession))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
@@ -412,7 +412,7 @@ class DatabaseIntegrationTests {
         admin.setRole("ADMIN");
         members.saveAndFlush(admin);
         Member player = createMember();
-        String authorization = bearer(login(admin));
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
         String playerAuthorization = bearer(login(player));
         String keyword = "Visibility " + UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Taipei"));
@@ -432,14 +432,14 @@ class DatabaseIntegrationTests {
         inProgress.setEndAt(now.plusHours(1));
         reloadFromDatabase();
 
-        mvc.perform(delete("/admin/events/" + inProgress.getId()).header("Authorization", authorization))
+        mvc.perform(delete("/admin/events/" + inProgress.getId()).with(adminSession))
                 .andExpect(status().isBadRequest());
 
         String path = "/admin/events/" + upcoming.getId();
         String visibility = path + "/list-visibility";
         mvc.perform(put(visibility).param("hidden", "true").header("Authorization", playerAuthorization))
-                .andExpect(status().isBadRequest());
-        mvc.perform(put(visibility).param("hidden", "true").header("Authorization", authorization))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(put(visibility).param("hidden", "true").with(adminSession))
                 .andExpect(status().isOk());
 
         mvc.perform(get("/events/page").param("q", keyword))
@@ -452,11 +452,11 @@ class DatabaseIntegrationTests {
         mvc.perform(get("/events/" + ended.getId())).andExpect(status().isOk());
         mvc.perform(get("/events/" + upcoming.getId())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.registeredCount").value(1));
-        mvc.perform(get(path + "/notifications").header("Authorization", authorization))
+        mvc.perform(get(path + "/notifications").with(adminSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
-        mvc.perform(get(path).header("Authorization", authorization))
+        mvc.perform(get(path).with(adminSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.hiddenFromPublicList").value(true));
-        mvc.perform(put(visibility).param("hidden", "false").header("Authorization", authorization))
+        mvc.perform(put(visibility).param("hidden", "false").with(adminSession))
                 .andExpect(status().isOk());
         mvc.perform(get("/events/page").param("q", keyword))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalEvents").value(2));
@@ -856,7 +856,7 @@ class DatabaseIntegrationTests {
         admin.setRole("ADMIN");
         members.saveAndFlush(admin);
         Member player = createMember();
-        String adminAuth = bearer(login(admin));
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
         String playerAuth = bearer(login(player));
         Event existing = createEvent(admin.getId(), 2);
         Event another = createEvent(admin.getId(), 2);
@@ -865,13 +865,13 @@ class DatabaseIntegrationTests {
         String suspend = "{\"action\":\"SUSPEND\",\"reason\":\"測試\"}";
 
         mvc.perform(get("/admin/members").header("Authorization", playerAuth))
-                .andExpect(status().isForbidden());
-        mvc.perform(get("/admin/members").param("query", player.getEmail()).header("Authorization", adminAuth))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/admin/members").param("query", player.getEmail()).with(adminSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].id").value(player.getId()));
-        mvc.perform(post(path + "/suspension").header("Authorization", adminAuth)
+        mvc.perform(post(path + "/suspension").with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(suspend))
                 .andExpect(status().isOk());
-        mvc.perform(get(path).header("Authorization", adminAuth))
+        mvc.perform(get(path).with(adminSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.member.suspended").value(true))
                 .andExpect(jsonPath("$.member.password").doesNotExist())
                 .andExpect(jsonPath("$.actions[0].reason").value("測試"))
@@ -881,10 +881,10 @@ class DatabaseIntegrationTests {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("帳號停權中，無法報名新活動"));
         mvc.perform(delete("/registration/events/" + existing.getId()).header("Authorization", playerAuth))
                 .andExpect(status().isOk());
-        mvc.perform(post(path + "/suspension").header("Authorization", adminAuth)
+        mvc.perform(post(path + "/suspension").with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"LIFT\",\"reason\":\"解除測試\"}"))
                 .andExpect(status().isOk());
-        mvc.perform(get(path).header("Authorization", adminAuth))
+        mvc.perform(get(path).with(adminSession))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.member.suspended").value(false));
         mvc.perform(post("/registration").param("eventId", another.getId().toString())
                 .header("Authorization", playerAuth)).andExpect(status().isCreated());
@@ -893,6 +893,117 @@ class DatabaseIntegrationTests {
         player.setSuspendedUntil(now);
         assertFalse(player.isSuspendedAt(now));
         assertTrue(player.isSuspendedAt(now.minusSeconds(1)));
+    }
+
+    @Test
+    void adminAndMemberLoginStatesRemainIndependent() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        TokenResponse memberLogin = login(admin);
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
+        // 同一帳號從會員入口登入，仍不能只靠會員 Token 進入後台。
+        mvc.perform(get("/admin/events").header("Authorization", bearer(memberLogin)))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/members/me").with(adminSession)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/members/me").header("Authorization", bearer(memberLogin)))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin-events.html")).andExpect(status().is3xxRedirection());
+        mvc.perform(get("/admin-events.html").with(adminSession)).andExpect(status().isOk());
+        mvc.perform(post("/admin/auth/logout").with(adminSession)).andExpect(status().isOk());
+        mvc.perform(get("/admin/events").with(adminSession)).andExpect(status().isUnauthorized());
+        // 後台登出不會清除或撤銷會員登入。
+        mvc.perform(get("/members/me").header("Authorization", bearer(memberLogin)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void frontLogoutThenOrdinaryMemberLoginCannotReuseAdminSession() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        Member player = createMember();
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
+        mvc.perform(get("/admin/events").with(adminSession)).andExpect(status().isOk());
+        // 即使沒有會員 JWT，前台登出也必須撤銷後台 Session。
+        mvc.perform(post("/members/logout-session").with(adminSession).header("X-Session-Logout", "1"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin/events").with(adminSession)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/members/login").with(adminSession).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"account\":\"" + player.getAccount() + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin/events").with(adminSession)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/admin-events.html").with(adminSession)).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void switchingMemberAccountEvenWithoutLogoutRevokesPreviousAdmin() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        Member player = createMember();
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
+        mvc.perform(post("/members/login").with(adminSession).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"account\":\"" + player.getAccount() + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin/members").with(adminSession)).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/admin/events/1").with(adminSession)).andExpect(status().isUnauthorized());
+        // 同一管理員改走會員入口，也不能繼承先前後台權限。
+        AdminTestSession nextSession = new AdminTestSession(mvc, admin, PASSWORD);
+        mvc.perform(post("/members/login").with(nextSession).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"account\":\"" + admin.getAccount() + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin/events").with(nextSession)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void memberLogoutApiRevokesAdminAndLogoutSessionRequiresHeader() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        TokenResponse memberLogin = login(admin);
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
+        mvc.perform(post("/members/logout-session").with(adminSession)).andExpect(status().isForbidden());
+        mvc.perform(get("/admin/events").with(adminSession)).andExpect(status().isOk());
+        mvc.perform(post("/members/logout").with(adminSession).header("Authorization", bearer(memberLogin))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refreshToken\":\"" + memberLogin.getRefreshToken() + "\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/admin/events").with(adminSession)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void adminUsesOwnMemberFeaturesWithoutReloginOrLosingAdminSession() throws Exception {
+        Member admin = createMember();
+        admin.setRole("ADMIN");
+        members.saveAndFlush(admin);
+        Member other = createMember();
+        AdminTestSession session = new AdminTestSession(mvc, admin, PASSWORD);
+        mvc.perform(get("/members/me").with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(admin.getId()));
+        mvc.perform(get("/registration").with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isArray());
+        String profile = "/members/" + admin.getId() + "/profile";
+        mvc.perform(put(profile).with(session).header("X-Admin-Front", "1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"管理員前台測試\",\"email\":\"" + admin.getEmail() + "\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/members/me").with(session).header("X-Admin-Front", "1"))
+                .andExpect(jsonPath("$.name").value("管理員前台測試"));
+        mvc.perform(get("/admin/events").with(session)).andExpect(status().isOk());
+        // 前台僅能操作自己，ADMIN 資料庫角色不代表能改別人的會員資料。
+        mvc.perform(get("/members/" + other.getId()).with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(put(profile).with(session).header("X-Admin-Front", "1")
+                .with(request -> { request.removeHeader("X-Admin-CSRF"); return request; })
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"不能儲存\",\"email\":\"" + admin.getEmail() + "\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/members/logout-session").with(session).header("X-Session-Logout", "1"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/members/me").with(session).header("X-Admin-Front", "1"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/admin/events").with(session)).andExpect(status().isUnauthorized());
     }
 
     private void reloadFromDatabase() {

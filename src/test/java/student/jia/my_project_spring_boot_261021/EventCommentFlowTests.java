@@ -51,7 +51,9 @@ class EventCommentFlowTests {
         Member author = member("MEMBER");
         String authorToken = login(author);
         String otherToken = login(member("MEMBER"));
-        String adminToken = login(member("ADMIN"));
+        Member admin = member("ADMIN");
+        String adminToken = login(admin);
+        AdminTestSession adminSession = new AdminTestSession(mvc, admin, PASSWORD);
         Event event = event(author);
         String details = "/events/" + event.getId();
         String publicPath = details + "/comments";
@@ -78,18 +80,21 @@ class EventCommentFlowTests {
 
         mvc.perform(delete(comment).header("Authorization", otherToken)).andExpect(status().isNotFound());
         mvc.perform(put(moderation).header("Authorization", otherToken)
-                .contentType(MediaType.APPLICATION_JSON).content(reason)).andExpect(status().isBadRequest());
-        mvc.perform(put(moderation).header("Authorization", adminToken)
+                .contentType(MediaType.APPLICATION_JSON).content(reason)).andExpect(status().isUnauthorized());
+        mvc.perform(put(moderation).with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(reason)).andExpect(status().isNoContent());
         mvc.perform(get(publicPath)).andExpect(jsonPath("$.comments").isEmpty());
         mvc.perform(get(memberPath).header("Authorization", authorToken))
                 .andExpect(jsonPath("$.comments").isEmpty());
         mvc.perform(get(memberPath).header("Authorization", adminToken))
+                .andExpect(jsonPath("$.comments").isEmpty())
+                .andExpect(jsonPath("$.canModerate").value(false));
+        mvc.perform(get("/admin" + publicPath).with(adminSession))
                 .andExpect(jsonPath("$.comments[0].hiddenReason").value("測試隱藏"));
-        mvc.perform(put(moderation).header("Authorization", adminToken)
+        mvc.perform(put(moderation).with(adminSession)
                 .contentType(MediaType.APPLICATION_JSON).content(reason)).andExpect(status().isNoContent());
-        mvc.perform(delete(moderation).header("Authorization", adminToken)).andExpect(status().isNoContent());
-        mvc.perform(delete(moderation).header("Authorization", adminToken)).andExpect(status().isNoContent());
+        mvc.perform(delete(moderation).with(adminSession)).andExpect(status().isNoContent());
+        mvc.perform(delete(moderation).with(adminSession)).andExpect(status().isNoContent());
 
         var notices = entityManager.createNativeQuery("""
                 SELECT member_id, event_title, reason, status FROM comment_moderation_notifications

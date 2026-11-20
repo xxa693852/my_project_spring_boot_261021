@@ -17,6 +17,10 @@ import student.jia.my_project_spring_boot_261021.response.MemberResponse;
 import student.jia.my_project_spring_boot_261021.entity.Member;
 import student.jia.my_project_spring_boot_261021.response.TokenResponse;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.server.ResponseStatusException;
+import student.jia.my_project_spring_boot_261021.service.AdminAuthService;
 import student.jia.my_project_spring_boot_261021.request.MemberForgotPasswordRequest;
 import student.jia.my_project_spring_boot_261021.request.MemberLoginRequest;
 import student.jia.my_project_spring_boot_261021.request.MemberPasswordResetRequest;
@@ -38,10 +42,12 @@ import student.jia.my_project_spring_boot_261021.service.MemberService;
 public class MemberController {
     
     public  final MemberService memberService;
+    private final AdminAuthService adminAuth;
 
     //建構子注入
-    public MemberController(MemberService memberService){
+    public MemberController(MemberService memberService, AdminAuthService adminAuth){
         this.memberService = memberService;
+        this.adminAuth = adminAuth;
     }
     //單一會員ID查詢
     // 以驗證後的登入者 ID 查詢自己，回傳不含密碼的 MemberResponse。
@@ -94,18 +100,33 @@ public class MemberController {
     //會員登入
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    public TokenResponse login(@Valid @RequestBody MemberLoginRequest request) {
+    public TokenResponse login(@Valid @RequestBody MemberLoginRequest request, HttpServletRequest httpRequest) {
+        // 會員入口重新登入代表切換使用身分，不能繼承瀏覽器裡先前的管理員權限。
+        adminAuth.logout(httpRequest);
         return memberService.login(request);
     }
     //會員登出
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse logout(
-        @Valid @RequestBody TokenLogoutRequest request) {
+        @Valid @RequestBody TokenLogoutRequest request, HttpServletRequest httpRequest) {
+        adminAuth.logout(httpRequest);
 
         memberService.logout(request.getRefreshToken());
         return new ApiResponse("登出成功");
     }
+    // 即使會員 JWT 已過期或不存在，也必須能從前台登出後台 Session。
+    // 專用 Header 防止一般跨站表單觸發登出；此 API 不建立任何新登入狀態。
+    @PostMapping("/logout-session")
+    public ApiResponse logoutSession(HttpServletRequest request,
+            @RequestHeader(value = "X-Session-Logout", required = false) String logoutHeader) {
+        if (!"1".equals(logoutHeader)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "登出請求驗證失敗。");
+        }
+        adminAuth.logout(request);
+        return new ApiResponse("已清除瀏覽器的後台登入狀態。");
+    }
+
     //會員停用
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)

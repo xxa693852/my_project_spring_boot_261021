@@ -20,6 +20,7 @@ function displayMember(member) {
     for (const key of ["account", "name", "email"]) profileForm.elements[key].value = member[key];
 }
 async function loadMember() {
+    await DndAuth.ready;
     if (busy || requireLogin()) return;
     setBusy(true);
     retry.hidden = true;

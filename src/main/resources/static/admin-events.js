@@ -42,9 +42,7 @@ function updateDateMinimums() {
 }
 
 function requireLogin() {
-    if (DndAuth.session()) return false;
-    management.hidden = true;
-    location.replace(DndAuth.loginUrl());
+    DndAdmin.expired();
     return true;
 }
 function setBusy(value) {
@@ -88,7 +86,7 @@ function canEdit(event) {
     return event.status === "OPEN" && Date.now() < Date.parse(event.startAt + "+08:00");
 }
 async function checked(path, options) {
-    const response = await DndAuth.request(path, options);
+    const response = await DndAdmin.request(path, options);
     if (response.status === 401) { requireLogin(); throw new Error("登入已失效，請重新登入。"); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -251,6 +249,15 @@ async function loadPaymentLog(eventId) {
 }
 
 function openForm(event, opener) {
+    let commentsLink = document.getElementById("admin-comments-link");
+    if (!commentsLink) {
+        commentsLink = document.createElement("a");
+        commentsLink.id = "admin-comments-link";
+        commentsLink.textContent = "管理活動留言";
+        document.getElementById("form-info").after(commentsLink);
+    }
+    commentsLink.hidden = !event;
+    if (event) commentsLink.href = "/event-detail.html?id=" + event.id + "&admin=1";
     document.getElementById("payment-log").hidden = !event;
     clearErrors();
     form.reset();
@@ -405,11 +412,11 @@ async function changeListVisibility(event) {
 }
 
 async function initialize() {
-    if (busy || requireLogin()) return;
+    if (busy) return;
     setBusy(true);
     retry.hidden = true;
     try {
-        const member = await DndAuth.currentMember();
+        const member = await DndAdmin.currentMember();
         if (member.role !== "ADMIN") {
             management.hidden = true;
             message.textContent = "無權限：僅限管理員使用活動管理功能。";

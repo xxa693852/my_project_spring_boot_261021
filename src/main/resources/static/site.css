@@ -343,6 +343,11 @@ html:has(.cancel-registration-dialog[open]) { overflow: hidden; }
 .member-results article, .member-dialog-content { overflow-wrap: anywhere; }
 #member-dialog { width: min(680px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--border); border-radius: var(--radius); color: var(--ink); background: var(--parchment); }
 #member-dialog::backdrop { background: rgb(20 39 31 / 62%); }
+/* 閒置逾時後保留原表單，用上層登入對話框阻擋後台操作。 */
+#admin-expired-dialog { width: min(30rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); color: var(--ink); background: var(--parchment); }
+#admin-expired-dialog::backdrop { background: rgb(20 39 31 / 80%); }
+#admin-expired-dialog form { margin: 0; padding: .5rem; }
+html:has(#admin-expired-dialog[open]) { overflow: hidden; }
 .member-dialog-content { padding: 1.25rem; }
 .member-dialog-content select { display: block; max-width: 100%; font: inherit; padding: .5rem; }
 

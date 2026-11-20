@@ -17,6 +17,7 @@
     let adminPath;
     let page = 1;
     let busy = false;
+    const managingComments = new URLSearchParams(location.search).get("admin") === "1";
 
     function button(label, action) {
         const control = document.createElement("button");
@@ -37,9 +38,10 @@
         const signedIn = !!DndAuth.session();
         form.hidden = !result.canPost;
         login.href = DndAuth.loginUrl();
-        login.hidden = !result.open || signedIn;
-        access.hidden = result.open && (!signedIn || result.canPost);
-        access.textContent = result.open ? "目前帳號無法留言。" : "活動已取消或結束，留言區僅供查看。";
+        login.hidden = result.canModerate || !result.open || signedIn;
+        access.hidden = !result.canModerate && result.open && (!signedIn || result.canPost);
+        access.textContent = result.canModerate ? "管理模式：可隱藏或恢復留言，發言請使用會員登入。"
+            : result.open ? "目前帳號無法留言。" : "活動已取消或結束，留言區僅供查看。";
         list.replaceChildren();
         if (!result.comments.length) list.append(paragraph("目前沒有留言。", "comment-meta"));
 
@@ -118,6 +120,12 @@
     async function fetchPage(target) {
         const query = "?page=" + target;
         let response;
+        // 後台身分獨立檢查，會員帳號的 role 不會自動啟用管理模式。
+        if (managingComments) {
+            response = await DndAdmin.request(adminPath + query, { cache: "no-store" });
+            if (!response.ok) throw new Error("管理員登入已失效，請重新登入後再載入留言。");
+        }
+        if (response?.ok) return response.json();
         if (DndAuth.session()) {
             response = await DndAuth.request(memberPath + query, { cache: "no-store" });
         }
@@ -157,7 +165,8 @@
                 message.textContent = "";
                 return;
             }
-            const response = await DndAuth.request(path, options);
+            const response = path.startsWith("/admin/")
+                ? await DndAdmin.request(path, options) : await DndAuth.request(path, options);
             if (!response.ok) {
                 throw new Error(await DndAuth.errorMessage(response, "無法更新留言。"));
             }

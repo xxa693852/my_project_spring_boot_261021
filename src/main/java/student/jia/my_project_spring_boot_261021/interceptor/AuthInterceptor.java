@@ -23,6 +23,7 @@ import student.jia.my_project_spring_boot_261021.exception.AuthException;
 import student.jia.my_project_spring_boot_261021.repository.AuthTokenRepository;
 import student.jia.my_project_spring_boot_261021.response.TokenResponse;
 import student.jia.my_project_spring_boot_261021.service.JwtService;
+import student.jia.my_project_spring_boot_261021.service.AdminAuthService;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
@@ -38,7 +39,10 @@ public class AuthInterceptor implements HandlerInterceptor {
     private final JwtService jwtService;
     private final AuthTokenRepository authTokenRepository;
 
-    public AuthInterceptor(JwtService jwtService, AuthTokenRepository authTokenRepository) {
+    private final AdminAuthService adminAuth;
+
+    public AuthInterceptor(JwtService jwtService, AuthTokenRepository authTokenRepository, AdminAuthService adminAuth) {
+        this.adminAuth = adminAuth;
         this.jwtService = jwtService;
         this.authTokenRepository = authTokenRepository;
     }
@@ -55,6 +59,17 @@ public class AuthInterceptor implements HandlerInterceptor {
             HttpServletRequest request,
             HttpServletResponse response,
             Object handler) {
+        // 管理員使用自己的會員功能時，沿用同一個限時 Session，不額外簽發長效 JWT。
+        // 必須明確選擇這個入口；一般會員 Token 仍走原本的驗證，不會轉成管理員。
+        if (request.getHeader("Authorization") == null && "1".equals(request.getHeader("X-Admin-Front"))) {
+            String method = request.getMethod();
+            boolean write = !"GET".equals(method) && !"HEAD".equals(method) && !"OPTIONS".equals(method);
+            AdminAuthService.AdminIdentity admin = adminAuth.require(request, write);
+            validateMemberPathOwner(request, admin.id());
+            request.setAttribute(AUTH_MEMBER_ID_ATTRIBUTE, admin.id());
+            response.setHeader("Cache-Control", "no-store");
+            return true;
+        }
         String accessToken = getBearerToken(request);
 
         try {

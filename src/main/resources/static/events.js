@@ -230,6 +230,7 @@ function pageUrl(page) {
 }
 
 async function loadEvents() {
+    await DndAuth.ready;
     const requestedPage = Number(new URLSearchParams(location.search).get("page"));
     const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 2147483647
         ? requestedPage : 1;

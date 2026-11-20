@@ -56,6 +56,14 @@ public class EventCommentController {
         service.post(eventId, memberId, request.body());
     }
 
+    // 隱藏留言與管理能力只由後台 Session 入口提供。
+    @GetMapping("/admin/events/{eventId}/comments")
+    public ResponseEntity<CommentPage> adminComments(@PathVariable Long eventId,
+            @RequestAttribute(MEMBER_ID) Long memberId, @RequestParam(defaultValue = "1") int page) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(service.listForAdmin(eventId, memberId, page));
+    }
+
     @DeleteMapping(MEMBER + "/{commentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long eventId, @PathVariable Long commentId,

@@ -40,10 +40,10 @@ function memberStatus(member) {
 }
 
 async function request(path, options) {
-    const response = await DndAuth.request("/admin/members" + path, { cache: "no-store", ...options });
-    if (response.status === 401) location.assign(DndAuth.loginUrl());
+    const response = await DndAdmin.request("/admin/members" + path, { cache: "no-store", ...options });
+    if (response.status === 401) throw new Error("管理員登入已逾時，重新登入後可再次送出，原表單仍保留。");
     if (response.status === 403) throw new Error("只有管理員可以管理會員。");
-    if (!response.ok) throw new Error(await DndAuth.errorMessage(response, "操作失敗，請稍後再試。"));
+    if (!response.ok) throw new Error(await DndAdmin.errorMessage(response, "操作失敗，請稍後再試。"));
     return response.json();
 }
 
@@ -197,5 +197,5 @@ suspension.addEventListener("submit", async event => {
     }
 });
 
-if (DndAuth.session()) refresh(1);
-else location.replace(DndAuth.loginUrl());
+// 首次讀取也經過後台驗證；逾時由共用登入對話框處理，不跳頁丟失表單。
+refresh(1);
