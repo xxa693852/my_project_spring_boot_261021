@@ -10,7 +10,7 @@ function addText(parent, tag, value, className) {
 }
 
 function eventTime(value) {
-    return value ? value.slice(0, 16).replace("T", " ") : "未設定";
+    return DndTime.format(value);
 }
 
 function eventSchedule(event) {

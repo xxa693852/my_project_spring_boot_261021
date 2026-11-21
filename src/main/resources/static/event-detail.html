@@ -4,18 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 活動詳情</title>
-    <link rel="stylesheet" href="/site.css?v=admin-isolation-1">
+    <link rel="stylesheet" href="/site.css?v=batch4-1">
+    <script src="/site-time.js?v=batch4-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/auth.js?v=admin-member-bridge-1" defer></script>
-    <script src="/event-presentation.js?v=registration-conflict" defer></script>
+    <script src="/event-presentation.js?v=batch4-1" defer></script>
     <script src="/line-notification-prompt.js?v=admin-member-bridge-1" defer></script>
     <script src="/cancel-registration-dialog.js?v=centered-cancel" defer></script>
-    <link rel="stylesheet" href="/event-comments.css?v=4">
+    <link rel="stylesheet" href="/event-comments.css?v=resize-both-1">
     <script src="/page-jump.js?v=1" defer></script>
-    <script src="/event-comments.js?v=admin-session-1" defer></script>
+    <script src="/event-comments.js?v=resize-both-1" defer></script>
     <script src="/event-fee.js?v=1" defer></script>
-    <script src="/event-detail.js?v=admin-member-bridge-1" defer></script>
+    <script src="/event-detail.js?v=batch4-1" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=1">
+    <script src="/field-counters.js?v=batch3-1" defer></script>
 </head>
 <body>
     <header class="site-header">
@@ -57,9 +59,9 @@
                 <a id="comment-login" hidden>登入後留言</a>
                 <form id="comment-form" hidden>
                     <label for="comment-body">留言內容</label>
-                    <textarea id="comment-body" rows="3" required maxlength="500"
+                    <textarea id="comment-body" data-char-limit="500" rows="3" required maxlength="500"
                               aria-describedby="comment-limit"></textarea>
-                    <p id="comment-limit">最多 500 字</p>
+                    <p id="comment-limit">最多 500 字元</p>
                     <button type="submit">送出留言</button>
                 </form>
                 <p id="comment-message" role="status"></p>
@@ -92,7 +94,7 @@
             <h2 id="delete-comment-title">刪除留言</h2>
             <p>確定要刪除這則留言嗎？刪除後無法復原。</p>
             <div class="actions">
-                <button type="submit" value="keep" autofocus>保留留言</button>
+                <button type="submit" value="keep" autofocus class="button-secondary">保留留言</button>
                 <button type="submit" value="cancel">確認刪除</button>
             </div>
         </form>

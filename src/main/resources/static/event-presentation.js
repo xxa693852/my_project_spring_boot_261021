@@ -46,8 +46,8 @@ async function showRegistrationConflict(response, container) {
     const list = document.createElement("ul");
     for (const conflict of data.conflicts) {
         const item = document.createElement("li");
-        const start = conflict.startAt.slice(0, 16).replace("T", " ");
-        const end = conflict.endAt.slice(0, 16).replace("T", " ");
+        const start = DndTime.format(conflict.startAt);
+        const end = DndTime.format(conflict.endAt);
         item.textContent = conflict.title + "（" + start + " 至 " + end + "，台北時間）";
         list.append(item);
     }

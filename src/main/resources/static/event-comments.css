@@ -13,7 +13,9 @@
 
 .event-comments textarea {
     width: 100%;
-    resize: vertical;
+    max-width: 100%;
+    min-width: min(100%, 12rem);
+    resize: both;
 }
 
 .event-comments p {
@@ -42,4 +44,15 @@
 .event-comments [hidden],
 .event-comments[hidden] {
     display: none;
+}
+
+/* 編輯標籤佔滿可用寬度，拖曳輸入框時才能利用右側空間。 */
+.event-comments .comment-edit-form > label {
+    width: 100%;
+    min-width: 0;
+    justify-self: stretch;
+}
+.event-comments .comment-edit-form textarea {
+    display: block;
+    width: min(100%, 38rem);
 }

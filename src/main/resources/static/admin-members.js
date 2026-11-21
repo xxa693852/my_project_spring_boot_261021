@@ -30,7 +30,7 @@ function addText(parent, tag, text) {
 }
 
 function dateText(value) {
-    return value ? value.slice(0, 16).replace("T", " ") : "—";
+    return DndTime.format(value, "—");
 }
 
 function memberStatus(member) {

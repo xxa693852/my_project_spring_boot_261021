@@ -75,6 +75,15 @@ class EventCommentFlowTests {
                         .andExpect(jsonPath("$.comments[0].canDelete").value(true))
                         .andReturn().getResponse().getContentAsString(), "$.comments[0].id");
         String comment = memberPath + "/" + commentId;
+        mvc.perform(put(comment).header("Authorization", otherToken).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"body\":\"不屬於自己的修改\"}")).andExpect(status().isNotFound());
+        mvc.perform(put(comment).header("Authorization", authorToken).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"body\":\"" + "字".repeat(501) + "\"}")).andExpect(status().isBadRequest());
+        mvc.perform(put(comment).header("Authorization", authorToken).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"body\":\"" + "字".repeat(500) + "\"}")).andExpect(status().isNoContent());
+        mvc.perform(get(publicPath)).andExpect(jsonPath("$.comments[0].body").value("字".repeat(500)));
+        mvc.perform(put(comment).header("Authorization", authorToken).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"body\":\"" + body + "\"}")).andExpect(status().isNoContent());
         String moderation = "/admin" + publicPath + "/" + commentId + "/visibility";
         String reason = "{\"reason\":\"測試隱藏\"}";
 
@@ -141,6 +150,24 @@ class EventCommentFlowTests {
         author.setSuspendedUntil(LocalDateTime.now(TAIPEI).minusSeconds(1));
         mvc.perform(delete(comment).header("Authorization", authorToken)).andExpect(status().isNoContent());
         mvc.perform(get(publicPath)).andExpect(jsonPath("$.comments").isEmpty());
+    }
+
+    @Test
+    void reversedAbuseCannotPublishThroughMemberApiEvenWithoutAi() throws Exception {
+        Member author = member("MEMBER");
+        String token = login(author);
+        Event event = event(author);
+        String path = "/members/me/events/" + event.getId() + "/comments";
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        for (String body : new String[] {"娘你幹", "娘 你 幹", "娘你干", "娘\u200B你幹"}) {
+            mvc.perform(post(path).header("Authorization",token).contentType(MediaType.APPLICATION_JSON)
+                    .content(mapper.writeValueAsString(java.util.Map.of("body",body))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("內容不符合發布規範，請調整後再試。"))
+                    .andExpect(jsonPath("$.errors").doesNotExist());
+        }
+        mvc.perform(get("/events/" + event.getId() + "/comments"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.comments").isEmpty());
     }
 
     private Event event(Member creator) {

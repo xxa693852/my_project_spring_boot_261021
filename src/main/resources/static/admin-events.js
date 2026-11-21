@@ -25,6 +25,7 @@ let editingId = null, editable = true, busy = false;
 let currentPage = 1;
 let totalPages = 0;
 let formOpener;
+let moderationRefreshing = false;
 const cancelDialog = document.getElementById("cancel-event-dialog");
 let eventToCancel;
 
@@ -52,6 +53,7 @@ function setBusy(value) {
     fields.disabled = value || !editable;
     save.disabled = value || !editable;
     retry.disabled = value;
+    document.getElementById("refresh-moderation-status").disabled = value || moderationRefreshing;
     previousPage.disabled = value || currentPage <= 1;
     nextPage.disabled = value || currentPage >= totalPages;
 }
@@ -115,7 +117,7 @@ async function loadList(page = currentPage, filters = activeFilters) {
         const card = document.createElement("article");
         text(card, "h3", event.title);
         text(card, "p", "活動狀態：" + (statuses[event.status] || event.status));
-        text(card, "p", "開始時間：" + event.startAt.replace("T", " "));
+        text(card, "p", "開始時間：" + DndTime.format(event.startAt));
         text(card, "p", "地點：" + event.location);
         text(card, "p", "已報名：" + event.registeredCount + " 人；剩餘名額：" + event.remainingSlots + " / " + event.capacity);
         const edit = document.createElement("button");
@@ -202,6 +204,8 @@ async function loadPaymentLog(eventId) {
     const list = document.getElementById("payment-log-list");
     const notice = document.getElementById("payment-log-message");
     list.replaceChildren();
+    const tableRegion = list.closest(".table-scroll");
+    tableRegion.hidden = true;
     notice.textContent = "讀取付款紀錄中……";
     try {
         const records = await checked("/admin/events/" + eventId + "/payments");
@@ -209,17 +213,23 @@ async function loadPaymentLog(eventId) {
             FAILED: "付款失敗", CANCELLED: "已取消", REFUND_PENDING: "待全額退款",
             REVIEW_REQUIRED: "已收款，待人工核對", REFUNDED: "已退款" };
         notice.textContent = records.length ? "" : "此活動沒有付款紀錄。";
+        tableRegion.hidden = records.length === 0;
         for (const record of records) {
-            const item = text(list, "li", record.merchantOrderNo + " · NT$" +
-                new Intl.NumberFormat("zh-TW").format(record.amount) + " · " + (labels[record.status] || record.status));
-            if (record.providerTradeNo) text(item, "p", "藍新交易編號 " + record.providerTradeNo);
-            if (record.refundNote) text(item, "p", "退款說明 " + record.refundNote + " · " + record.refundedAt.replace("T", " "));
+            const row = text(list, "tr", "");
+            const order = text(row, "th", record.merchantOrderNo);
+            order.scope = "row";
+            if (record.providerTradeNo) text(order, "p", "藍新交易編號 " + record.providerTradeNo);
+            text(row, "td", "NT$" + new Intl.NumberFormat("zh-TW").format(record.amount));
+            text(row, "td", labels[record.status] || record.status);
+            text(row, "td", DndTime.format(record.paidAt, "—"));
+            text(row, "td", DndTime.format(record.refundedAt, "—"));
+            const item = text(row, "td", record.refundNote || "—");
             if (record.status !== "REFUND_PENDING" && record.status !== "REVIEW_REQUIRED") continue;
             const note = document.createElement("input");
             note.setAttribute("aria-label", "退款說明 " + record.merchantOrderNo);
             note.placeholder = "填寫退款日期與對帳單號";
             note.maxLength = 255;
-            item.append(note);
+            item.replaceChildren(note);
             const button = text(item, "button", "登記已全額退款");
             button.type = "button";
             button.addEventListener("click", async () => {
@@ -276,6 +286,7 @@ function openForm(event, opener) {
         else form.elements[key].value = key.endsWith("At") || key === "registrationDeadline"
             ? event[key].slice(0, 19) : event[key];
     }
+    DndCounters.refresh(form);
     updateCoverPreview();
     fields.disabled = !editable;
     save.hidden = !editable;
@@ -364,6 +375,7 @@ form.addEventListener("submit", async event => {
         first?.focus();
     } finally {
         setBusy(false);
+        loadModerationStatus();
         if (saved) {
             const updated = id === null ? newEvent : list.querySelector('[data-event-id="' + id + '"]');
             (updated || newEvent).focus({ preventScroll: true });
@@ -402,6 +414,35 @@ async function changeListVisibility(event) {
     }
 }
 
+async function loadModerationStatus() {
+    // 防止連點重送；即使狀態文字相同，也顯示本次讀取結果與時間。
+    if (moderationRefreshing) return;
+    moderationRefreshing = true;
+    const notice = document.getElementById("moderation-status");
+    const refresh = document.getElementById("refresh-moderation-status");
+    refresh.disabled = true;
+    refresh.textContent = "更新中……";
+    notice.setAttribute("aria-busy", "true");
+    notice.textContent = "正在重新讀取審核狀態……";
+    try {
+        const status = await checked("/admin/moderation/status");
+        const updatedAt = new Intl.DateTimeFormat("zh-TW", {
+            timeZone: "Asia/Taipei", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+        }).format(new Date());
+        notice.textContent = status.message + "（已更新：" + updatedAt + "，台北時間）";
+        refresh.textContent = "✓ 已更新，再次整理";
+    } catch {
+        notice.textContent = "本次更新失敗，暫時無法讀取審核狀態，請稍後再試。";
+        refresh.textContent = "更新失敗，重新整理";
+    } finally {
+        moderationRefreshing = false;
+        notice.removeAttribute("aria-busy");
+        refresh.disabled = busy;
+    }
+}
+document.getElementById("refresh-moderation-status").addEventListener("click", loadModerationStatus);
+
+
 async function initialize() {
     if (busy) return;
     setBusy(true);
@@ -415,6 +456,7 @@ async function initialize() {
         }
         management.hidden = false;
         await loadList();
+        await loadModerationStatus();
         message.textContent = "";
     } catch (error) {
         if (error.status === 401) requireLogin();

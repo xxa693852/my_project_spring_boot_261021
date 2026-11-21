@@ -1276,6 +1276,42 @@ class DatabaseIntegrationTests {
         assertEquals(30, saved.getName().length());
     }
 
+    @Test
+    void eventPublicFieldsRejectSensitiveContentWithNoMatchDetails() throws Exception {
+        Member admin=createMember(); admin.setRole("ADMIN"); members.saveAndFlush(admin);
+        AdminTestSession session=new AdminTestSession(mvc,admin,PASSWORD);
+        Event target=createEvent(admin.getId(),2);
+        String original=target.getTitle(); long count=events.count();
+        var mapper=tools.jackson.databind.json.JsonMapper.builder().build();
+        for(String field:new String[]{"title","description","hostName","location","tags"}) {
+            var body=validEventPayload();
+            if("tags".equals(field)) body.put(field,List.of("操你媽"));
+            else body.put(field,"前文操你媽後文");
+            for(boolean update:new boolean[]{false,true}) {
+                var request=update?put("/admin/events/"+target.getId()):post("/admin/events");
+                mvc.perform(request.with(session).contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("內容不符合發布規範，請調整後再試。"))
+                    .andExpect(jsonPath("$.errors").doesNotExist());
+            }
+        }
+        reloadFromDatabase();
+        assertEquals(count,events.count()); assertEquals(original,events.findById(target.getId()).get().getTitle());
+    }
+
+    @Test
+    void onlyAdminSessionCanReadModerationHealthWithoutExposingCredentials() throws Exception {
+        mvc.perform(get("/admin/moderation/status")).andExpect(status().isUnauthorized());
+        Member admin = createMember(); admin.setRole("ADMIN"); members.saveAndFlush(admin);
+        TokenResponse memberLogin = login(admin);
+        mvc.perform(get("/admin/moderation/status").header("Authorization",bearer(memberLogin)))
+                .andExpect(status().isUnauthorized());
+        AdminTestSession session = new AdminTestSession(mvc,admin,PASSWORD);
+        mvc.perform(get("/admin/moderation/status").with(session)).andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control","no-store"))
+                .andExpect(jsonPath("$.state").value("DISABLED"))
+                .andExpect(jsonPath("$.apiKey").doesNotExist());
+    }
+
     private void reloadFromDatabase() {
         // flush 將變更送到 MySQL；clear 清除 JPA 快取，後續查詢才會重新讀取資料庫。
         // 這不會提交交易，案例結束後仍會回滾。

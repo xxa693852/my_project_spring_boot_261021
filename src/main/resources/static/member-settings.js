@@ -18,6 +18,7 @@ function setBusy(value) {
 function displayMember(member) {
     memberId = member.id;
     for (const key of ["account", "name", "email"]) profileForm.elements[key].value = member[key];
+    window.DndCounters?.refresh(profileForm);
 }
 async function loadMember() {
     await DndAuth.ready;

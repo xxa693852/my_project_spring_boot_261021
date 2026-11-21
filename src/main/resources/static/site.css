@@ -368,3 +368,35 @@ html:has(#admin-expired-dialog[open]) { overflow: hidden; }
 }
 .event-fee-free { color: #205b3d; background: #ebf8ef; }
 .event-fee-paid { color: #784706; background: #fff2cf; }
+
+/* 第四批：主要儲存、次要關閉與可捲動的對帳表格。 */
+.button-secondary { color: var(--forest); background: transparent; border-color: #8b9488; }
+.button-secondary:hover { color: var(--forest-dark); background: #e7ecdf; }
+.form-actions { margin-block: 1rem; padding-block: .75rem; border-block: 1px solid var(--border); }
+.form-actions button { margin: 0; }
+.table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; margin-block: 1rem; border: 1px solid var(--border); border-radius: 8px; }
+.payment-table { width: 100%; min-width: 800px; border-collapse: collapse; table-layout: fixed; font-size: .9rem; }
+.payment-table caption { padding: .65rem; text-align: left; font-weight: 650; }
+.payment-table th, .payment-table td { padding: .65rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.payment-table thead th { background: #e9e2d2; }
+.payment-table th:first-child { width: 22%; }
+.payment-table th:last-child { width: 26%; }
+.payment-table tbody th { font-weight: 500; }
+.payment-table p { margin: .35rem 0 0; }
+.payment-table button { width: 100%; }
+.event-card-heading h2, .event-label, .event-facts > div, .site-bar > *, #member-nav { min-width: 0; max-width: 100%; }
+.event-label { overflow-wrap: anywhere; }
+textarea { resize: vertical; }
+dialog { overflow-y: auto; overflow-x: hidden; }
+@media (max-width: 480px) {
+    .site-bar, .page { width: calc(100% - 1.25rem); }
+    #member-nav { width: 100%; }
+    .actions > button, .form-actions > button { flex: 1 1 8rem; }
+    .form-actions { align-items: stretch; }
+    .payment-table { font-size: .85rem; }
+    input, textarea, select { font-size: 1rem; }
+    .event-date-picker { gap: .35rem; }
+}
+
+/* 查看既有活動時提供較寬的對帳空間；新增活動仍沿用原本表單寬度。 */
+#event-dialog:has(#payment-log:not([hidden])) { width: min(1080px, calc(100% - 2rem)); }

@@ -23,6 +23,7 @@
         const control = document.createElement("button");
         control.type = "button";
         control.textContent = label;
+        if (label === "取消編輯" || label === "返回") control.className = "button-secondary";
         control.addEventListener("click", action);
         return control;
     }
@@ -48,7 +49,7 @@
         for (const comment of result.comments) {
             const entry = document.createElement("article");
             entry.className = "event-comment";
-            const localTime = comment.createdAt.replace("T", " ").slice(0, 16);
+            const localTime = DndTime.format(comment.createdAt);
             entry.append(paragraph(comment.authorName + " · " + localTime + "（台北時間）", "comment-meta"),
                 paragraph(comment.body, "comment-body"));
             if (comment.hiddenReason) {
@@ -58,6 +59,7 @@
             const actions = document.createElement("div");
             actions.className = "actions";
             if (comment.canDelete) {
+                actions.append(button("編輯留言", () => showEditForm(entry, comment)));
                 actions.append(button("刪除留言", () => {
                     if (busy || deleteDialog.open) return;
                     commentToDelete = comment.id;
@@ -87,6 +89,32 @@
         next.disabled = !result.hasNext;
     }
 
+    function showEditForm(entry, comment) {
+        if (busy) return;
+        const existing = entry.querySelector("form");
+        if (existing) { existing.querySelector("textarea").focus(); return; }
+        const editor = document.createElement("form");
+        editor.className = "comment-edit-form";
+        const label = document.createElement("label");
+        label.textContent = "編輯留言（最多 500 字元）";
+        const draft = document.createElement("textarea");
+        draft.id = "edit-comment-" + comment.id;
+        draft.maxLength = 500;
+        draft.required = true;
+        draft.value = comment.body;
+        label.append(draft);
+        const submit = button("儲存修改", () => {});
+        submit.type = "submit";
+        editor.append(label, submit, button("取消編輯", () => editor.remove()));
+        editor.addEventListener("submit", event => {
+            event.preventDefault();
+            change(memberPath + "/" + comment.id, json("PUT", {body: draft.value}), "留言已更新。");
+        });
+        entry.append(editor);
+        DndCounters.attach(draft, 500);
+        draft.focus();
+    }
+
     function showHideForm(entry, path) {
         const existing = entry.querySelector("form");
         if (existing) {
@@ -114,6 +142,7 @@
             change(path, json("PUT", { reason: reason.value }), "留言已隱藏。");
         });
         entry.append(hideForm);
+        DndCounters.attach(reason, 200);
         reason.focus();
     }
 
@@ -157,6 +186,8 @@
     async function change(path, options, success, scrollToComments = false) {
         if (busy) return;
         busy = true;
+        const controls = Array.from(section.querySelectorAll("button,input,textarea")).map(control => [control, control.disabled]);
+        for (const [control] of controls) control.disabled = true;
         section.setAttribute("aria-busy", "true");
         try {
             if (typeof path === "number") {
@@ -170,7 +201,7 @@
             if (!response.ok) {
                 throw new Error(await DndAuth.errorMessage(response, "無法更新留言。"));
             }
-            if (options.method === "POST") body.value = "";
+            if (options.method === "POST") { body.value = ""; window.DndCounters?.refresh(form); }
             try {
                 await load(options.method === "POST" ? 1 : page);
                 message.textContent = success;
@@ -180,6 +211,7 @@
         } catch (error) {
             message.textContent = error.message;
         } finally {
+            for (const [control, disabled] of controls) control.disabled = disabled;
             busy = false;
             section.removeAttribute("aria-busy");
         }

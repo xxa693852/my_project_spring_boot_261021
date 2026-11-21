@@ -33,6 +33,12 @@ public class GlobalExceptionHandler {
 
     public record RegistrationConflictResponse(String message, List<RegistrationConflictException.Conflict> conflicts) {}
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public org.springframework.http.ResponseEntity<ApiResponse> handleStatus(org.springframework.web.server.ResponseStatusException exception) {
+        return org.springframework.http.ResponseEntity.status(exception.getStatusCode())
+                .body(new ApiResponse(exception.getReason() == null ? "操作失敗，請稍後再試。" : exception.getReason()));
+    }
+
     // 找不到會員或其他指定資料，回傳 HTTP 404。
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)

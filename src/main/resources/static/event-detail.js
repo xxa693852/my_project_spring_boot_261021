@@ -55,7 +55,7 @@ function showEvent(event) {
     panel.hidden = false;
 }
 
-function time(value) { return value ? value.replace("T", " ") : "未設定"; }
+function time(value) { return DndTime.format(value); }
 
 function showLogin(text) {
     statusText.textContent = text;
@@ -117,7 +117,7 @@ async function loadEvent() {
         }
         const registration = own.status === 404 ? null : await own.json();
         if (registration?.status === "PENDING_PAYMENT") {
-            statusText.textContent = "待付款，保留至 " + registration.paymentExpiresAt.replace("T", " ") + "（台北時間）";
+            statusText.textContent = "待付款，保留至 " + DndTime.format(registration.paymentExpiresAt) + "（台北時間）";
             register.textContent = "繼續付款";
             register.hidden = false;
             cancel.hidden = !registration.canCancel;

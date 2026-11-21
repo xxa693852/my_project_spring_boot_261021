@@ -64,6 +64,13 @@ public class EventCommentController {
                 .body(service.listForAdmin(eventId, memberId, page));
     }
 
+    @PutMapping(MEMBER + "/{commentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void edit(@PathVariable Long eventId, @PathVariable Long commentId,
+            @RequestAttribute(MEMBER_ID) Long memberId, @Valid @RequestBody PostComment request) {
+        service.edit(eventId, commentId, memberId, request.body());
+    }
+
     @DeleteMapping(MEMBER + "/{commentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long eventId, @PathVariable Long commentId,
@@ -87,7 +94,7 @@ public class EventCommentController {
 
     public record PostComment(
             @NotBlank(message = "請輸入留言。")
-            @Size(max = EventCommentService.BODY_LIMIT, message = "留言最多 500 字。")
+            @Size(max = EventCommentService.BODY_LIMIT, message = "留言最多 500 字元。")
             String body) {
     }
 

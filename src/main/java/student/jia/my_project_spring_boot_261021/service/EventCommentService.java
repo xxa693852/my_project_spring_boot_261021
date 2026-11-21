@@ -27,6 +27,8 @@ public class EventCommentService {
     private static final int PAGE_SIZE = 20;
     private static final ZoneId TAIPEI = ZoneId.of("Asia/Taipei");
 
+    private final PublicContentPolicy contentPolicy;
+    private final CommentWriteLimiter limiter;
     private final EventService eventService;
     private final EventRepository events;
     private final EventCommentRepository comments;
@@ -35,7 +37,9 @@ public class EventCommentService {
 
     public EventCommentService(EventService eventService, EventRepository events,
             EventCommentRepository comments, MemberRepository members,
-            CommentModerationNotifications moderationNotifications) {
+            CommentModerationNotifications moderationNotifications, PublicContentPolicy contentPolicy, CommentWriteLimiter limiter) {
+        this.contentPolicy = contentPolicy;
+        this.limiter = limiter;
         this.eventService = eventService;
         this.events = events;
         this.comments = comments;
@@ -95,7 +99,30 @@ public class EventCommentService {
         Event event = lockEvent(eventId);
         LocalDateTime now = LocalDateTime.now(TAIPEI);
         requireOpen(event, now);
+        validateBody(body);
+        reserveWrite(memberId, false);
         comments.save(new EventComment(eventId, member, body.strip(), now));
+    }
+
+    @Transactional
+    public void edit(Long eventId, Long commentId, Long memberId, String body) {
+        activeOperator(memberId);
+        Event event = lockEvent(eventId);
+        requireOpen(event, LocalDateTime.now(TAIPEI));
+        EventComment comment = lockComment(eventId, commentId);
+        if (!comment.getAuthor().getId().equals(memberId) || comment.getHiddenReason() != null) throw commentNotFound();
+        validateBody(body);
+        reserveWrite(memberId, true);
+        comment.edit(body.strip());
+    }
+    private void validateBody(String body) {
+        if (body == null || body.isBlank()) throw new IllegalArgumentException("請輸入留言。");
+        if (body.length() > BODY_LIMIT) throw new IllegalArgumentException("留言最多 500 字元。");
+        contentPolicy.validate(body);
+    }
+    private void reserveWrite(Long memberId, boolean edit) {
+        String rejection = limiter.reserveWrite(memberId, edit);
+        if (rejection != null) throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, rejection);
     }
 
     @Transactional

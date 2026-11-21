@@ -38,6 +38,7 @@ public class EventService {
     private static final int ADMIN_PAGE_SIZE = 10;
     private static final int PUBLIC_PAGE_SIZE = 6;
 
+    private final PublicContentPolicy contentPolicy;
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
     private final RegistrationRepository registrationRepository;
@@ -50,7 +51,8 @@ public class EventService {
             MemberRepository memberRepository,
             RegistrationRepository registrationRepository,
             CancellationNotificationQueue notificationQueue, NewebPayService newebPay,
-            student.jia.my_project_spring_boot_261021.repository.PaymentRepository payments) {
+            student.jia.my_project_spring_boot_261021.repository.PaymentRepository payments, PublicContentPolicy contentPolicy) {
+        this.contentPolicy = contentPolicy;
         this.newebPay = newebPay;
         this.payments = payments;
 
@@ -68,6 +70,7 @@ public class EventService {
             CreateEventRequest request) {
 
         validateDateRange(request.getStartAt(), request.getEndAt(), request.getRegistrationDeadline());
+        validatePublicContent(request.getTitle(), request.getDescription(), request.getHostName(), request.getLocation(), request.getTags());
 
         // 1. 查詢啟用中的會員
         Optional<Member> member =
@@ -221,6 +224,7 @@ public class EventService {
             UpdateEventRequest request) {
 
         validateDateRange(request.getStartAt(), request.getEndAt(), request.getRegistrationDeadline());
+        validatePublicContent(request.getTitle(), request.getDescription(), request.getHostName(), request.getLocation(), request.getTags());
 
         // 1. 檢查操作的人是否為啟用中的管理員
         validateAdmin(memberId);
@@ -326,6 +330,17 @@ public class EventService {
             }
             event.setCustomTags(String.join("\n", uniqueTags)); // 更新活動封面主題與自訂標籤，標籤去除頭尾空白及重複值
         }
+    }
+
+    // 一次送審整份公開內容，避免活動的欄位與標籤分別呼叫 AI。
+    private void validatePublicContent(String title, String description, String hostName, String location, List<String> tags) {
+        List<String> values = new ArrayList<>();
+        values.add(title);
+        values.add(description);
+        values.add(hostName);
+        values.add(location);
+        if (tags != null) values.addAll(tags);
+        contentPolicy.validate(values.toArray(new String[0]));
     }
 
     // MySQL DATETIME 只接受 1000～9999 年，先回傳可理解的 400，避免寫入時才發生資料庫錯誤。

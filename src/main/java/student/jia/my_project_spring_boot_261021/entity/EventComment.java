@@ -48,6 +48,10 @@ public class EventComment {
         this.createdAt = createdAt;
     }
 
+    public void edit(String body) {
+        this.body = body;
+    }
+
     public void hide(String reason) {
         this.hiddenReason = reason;
     }

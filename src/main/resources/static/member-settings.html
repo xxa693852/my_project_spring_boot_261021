@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="referrer" content="no-referrer">
     <title>D&amp;D 會員設定</title>
-    <link rel="stylesheet" href="/site.css?v=page-backgrounds-2">
+    <link rel="stylesheet" href="/site.css?v=batch4-1">
     <!-- 調整：先載入共用密碼檢查，再執行表單程式。 -->
+    <script src="/site-time.js?v=batch4-1" defer></script>
     <script src="/password-rules.js?v=batch2-1" defer></script>
     <script src="/member-rules.js?v=member-fields-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/auth.js?v=admin-member-bridge-1" defer></script>
-    <script src="/member-settings.js?v=member-fields-1" defer></script>
+    <script src="/member-settings.js?v=batch3-1" defer></script>
     <script src="/line-notifications.js?v=admin-member-bridge-1" defer></script>
+    <script src="/field-counters.js?v=batch3-1" defer></script>
 </head>
 <body class="member-settings-page">
     <header class="site-header">
@@ -32,7 +34,7 @@
                     <label for="account">帳號（僅供查看）</label>
                     <input id="account" name="account" readonly autocomplete="username">
                     <label for="name">姓名或暱稱（1～30 字元）</label>
-                    <input id="name" name="name" maxlength="30" required autocomplete="name" aria-describedby="name-error">
+                    <input id="name" data-char-limit="30" name="name" maxlength="30" required autocomplete="name" aria-describedby="name-error">
                     <p id="name-error" class="field-error"></p>
                     <!-- 調整確認：Email maxlength=254 與後端及資料庫一致。 -->
                     <label for="email">Email</label>
