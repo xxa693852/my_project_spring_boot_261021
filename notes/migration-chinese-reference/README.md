@@ -19,3 +19,5 @@
 ## V19
 
 個別取消 LINE 通知：正式檔 `src/main/resources/db/migration/V19__create_registration_cancellation_lines.sql` 已有完整繁體中文 COMMENT、索引與限制條件的學習說明。
+
+- V20：直接閱讀正式 `src/main/resources/db/migration/V20__create_refund_notifications.sql`，已含資料庫中文 COMMENT 與索引、限制說明；對照用途不手動執行。

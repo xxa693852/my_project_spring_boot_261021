@@ -248,9 +248,18 @@ class AdminAuthIsolationTests {
         verify(context.getBean(AdminRegistrationService.class)).cancel(7L, 11L, 20L, "事故");
     }
 
+    @Test
+    void reportsRequireAdminSessionAndReportPageRedirectsToAdminLogin() throws Exception {
+        mvc.perform(get("/admin/reports/export")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/admin-reports.html")).andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin-login.html?returnTo=/admin-reports.html"));
+        MvcResult signedIn = login();
+        mvc.perform(get("/admin/reports/export").session(session(signedIn))).andExpect(status().isOk());
+    }
+
     @RestController
     static class Probe {
-        @RequestMapping({"/admin/probe", "/admin/members", "/admin/events/1/payments", "/admin-events.html"})
+        @RequestMapping({"/admin/probe", "/admin/members", "/admin/events/1/payments", "/admin-events.html", "/admin-reports.html", "/admin/reports/export"})
         public String admin(@RequestAttribute(AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long id) { return id.toString(); }
     }
 

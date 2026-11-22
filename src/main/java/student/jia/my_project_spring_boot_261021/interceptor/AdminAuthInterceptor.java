@@ -24,7 +24,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         if (path.isEmpty()) {
             path = request.getRequestURI().substring(request.getContextPath().length());
         }
-        boolean page = path.equals("/admin-events.html") || path.equals("/admin-members.html");
+        boolean page = path.equals("/admin-events.html") || path.equals("/admin-members.html") || path.equals("/admin-reports.html");
         String method = request.getMethod();
         boolean write = !"GET".equals(method) && !"HEAD".equals(method) && !"OPTIONS".equals(method);
         try {

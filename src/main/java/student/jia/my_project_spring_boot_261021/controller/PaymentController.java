@@ -1,6 +1,7 @@
 package student.jia.my_project_spring_boot_261021.controller;
 
 import java.util.List;
+import java.util.Map;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -9,15 +10,18 @@ import org.springframework.web.servlet.view.RedirectView;
 import student.jia.my_project_spring_boot_261021.interceptor.AuthInterceptor;
 import student.jia.my_project_spring_boot_261021.service.NewebPayService;
 import student.jia.my_project_spring_boot_261021.service.PaymentLifecycle;
+import student.jia.my_project_spring_boot_261021.service.RefundNotificationService;
 
 @RestController
 public class PaymentController {
     private final NewebPayService newebPay;
     private final PaymentLifecycle payments;
+    private final RefundNotificationService refunds;
 
-    public PaymentController(NewebPayService newebPay, PaymentLifecycle payments) {
+    public PaymentController(NewebPayService newebPay, PaymentLifecycle payments, RefundNotificationService refunds) {
         this.newebPay = newebPay;
         this.payments = payments;
+        this.refunds = refunds;
     }
 
     // 放在既有登入攔截路徑，會員 ID 取自登入狀態。
@@ -53,6 +57,13 @@ public class PaymentController {
     public void refund(@RequestAttribute(AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId,
             @PathVariable Long eventId, @PathVariable Long paymentId, @Valid @RequestBody RefundRequest request) {
         payments.recordRefund(memberId, eventId, paymentId, request.note().strip());
+    }
+
+    @GetMapping("/admin/events/{eventId}/refund-notifications")
+    public List<Map<String, Object>> refundNotifications(
+            @RequestAttribute(AuthInterceptor.AUTH_MEMBER_ID_ATTRIBUTE) Long memberId, @PathVariable Long eventId) {
+        payments.list(memberId, eventId);
+        return refunds.list(eventId);
     }
 
     public record RefundRequest(@NotBlank @Size(max = 255) String note) {}

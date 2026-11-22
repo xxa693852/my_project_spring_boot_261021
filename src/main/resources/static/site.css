@@ -570,3 +570,6 @@ button.admin-danger-outline:hover { color: #72201d; background: #f7e2dd; border-
 #roster-dialog .roster-history-table th:nth-child(5) { width: 24%; }
 #roster-dialog .roster-history-table th:nth-child(6), #roster-dialog .roster-history-table th:nth-child(7) { width: 15%; }
 #roster-history td:nth-child(5) { white-space: pre-wrap; }
+
+.report-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1rem; }
+#payment-log .payment-table { min-width: 1150px; }

@@ -31,6 +31,11 @@
         <jjwt.version>0.12.6</jjwt.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.4.1</version>
+        </dependency>
         <!-- 寄送電子郵件 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

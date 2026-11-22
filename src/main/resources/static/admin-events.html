@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 活動管理</title>
-    <link rel="stylesheet" href="/site.css?v=sticky-admin-close-1">
+    <link rel="stylesheet" href="/site.css?v=refund-report-1">
     <script src="/site-time.js?v=batch4-1" defer></script>
-    <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
+    <script src="/admin-auth.js?v=refund-report-1" defer></script>
     <script src="/event-presentation.js?v=batch4-1" defer></script>
     <script src="/taipei-date-picker.js?v=1" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=2">
     <script src="/page-jump.js?v=1" defer></script>
     <link rel="stylesheet" href="/event-search.css?v=1">
     <script src="/event-validation.js?v=batch2-1" defer></script>
-    <script src="/admin-events.js?v=sticky-admin-close-1" defer></script>
+    <script src="/admin-events.js?v=refund-report-1" defer></script>
     <script src="/search-history.js?v=1" defer></script>
     <script src="/field-counters.js?v=batch3-1" defer></script>
 </head>
@@ -42,6 +42,7 @@
                 </div>
                 <form id="event-form" novalidate>
                     <p id="form-info"></p>
+                    <h3>活動資料</h3>
                     <fieldset id="event-fields">
                         <label for="title">活動名稱（最多 100 字元）</label>
                         <input id="title" data-char-limit="100" name="title" maxlength="100" required aria-describedby="title-error">
@@ -94,12 +95,13 @@
                     <p id="form-message" role="status" aria-live="polite"></p>
                     <section id="payment-log" aria-labelledby="payment-log-title" hidden>
                         <h3 id="payment-log-title">付款與退款紀錄</h3>
+                        <button id="reload-payment-log" type="button" class="button-secondary">重新整理退款與通知狀態</button>
                         <p id="payment-log-message" role="status"></p>
-                        <p class="field-help">此處僅登記已在藍新完成的全額退款；不會直接執行退款。手機可左右捲動查看完整表格。</p>
+                        <p class="field-help">此處僅登記已在藍新完成的全額退款；不會直接執行退款。登記成功後安排 Email 與已綁定 LINE 通知。後台標記時間不代表金流處理或玩家入帳時間；內部說明不對外寄送。手機可左右捲動查看完整表格。</p>
                         <div class="table-scroll" role="region" aria-label="付款與退款紀錄表格，可左右捲動" tabindex="0" hidden>
                             <table class="payment-table">
                                 <caption>此活動的付款與退款紀錄（台北時間）</caption>
-                                <thead><tr><th scope="col">訂單／藍新交易編號</th><th scope="col">金額</th><th scope="col">狀態</th><th scope="col">付款時間</th><th scope="col">退款時間</th><th scope="col">退款說明／操作</th></tr></thead>
+                                <thead><tr><th scope="col">訂單／藍新交易編號</th><th scope="col">金額</th><th scope="col">狀態</th><th scope="col">付款時間</th><th scope="col">後台標記已退款時間</th><th scope="col">內部退款說明／操作</th><th scope="col">退款通知</th></tr></thead>
                                 <tbody id="payment-log-list"></tbody>
                             </table>
                         </div>
@@ -161,7 +163,7 @@
         <p id="roster-event-name" class="roster-event-name"></p>
         <p id="roster-summary"></p>
         <p class="field-help">取消會立即釋出名額，無法保證恢復原席位。截止後補位仍須先調整報名截止時間；活動開始後僅供查看。</p>
-        <p class="field-help">已付款者取消後列為待全額退款；請至「修改活動 → 付款與退款紀錄」登記已在藍新完成的退款。</p>
+        <p class="field-help">已付款者取消後列為待全額退款；請至「活動資料修改／收退款 → 付款與退款紀錄」登記已在藍新完成的退款。</p>
         <p id="roster-message" role="status" aria-live="polite"></p>
         <div class="table-scroll" role="region" aria-label="報名名單，可左右捲動" tabindex="0">
             <table class="payment-table">

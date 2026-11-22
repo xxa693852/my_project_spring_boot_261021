@@ -127,7 +127,7 @@ async function loadList(page = currentPage, filters = activeFilters) {
         slots.addEventListener("click", () => openRoster(event.id, slots));
         const edit = document.createElement("button");
         edit.type = "button";
-        edit.textContent = canEdit(event) ? "修改活動" : "查看活動資料";
+        edit.textContent = "活動資料修改／收退款";
         edit.dataset.eventId = String(event.id);
         edit.addEventListener("click", () => loadForm(event.id, edit));
         const actions = document.createElement("div");
@@ -218,6 +218,11 @@ async function loadPaymentLog(eventId) {
     notice.textContent = "讀取付款紀錄中……";
     try {
         const records = await checked("/admin/events/" + eventId + "/payments");
+        let notifications = [];
+        let notificationsKnown = true;
+        try { notifications = await checked("/admin/events/" + eventId + "/refund-notifications"); }
+        catch { notificationsKnown = false; }
+        const noticeLabels = { PENDING: "待寄送", SENDING: "處理中", SENT: "服務已接受", FAILED: "缺收件人", UNKNOWN: "結果待確認", NOT_BOUND: "未綁定", NOT_CONFIGURED: "未設定" };
         const labels = { INIT: "待付款", PENDING: "待付款", PAID: "已付款",
             FAILED: "付款失敗", CANCELLED: "已取消", REFUND_PENDING: "待全額退款",
             REVIEW_REQUIRED: "已收款，待人工核對", REFUNDED: "已退款" };
@@ -233,10 +238,18 @@ async function loadPaymentLog(eventId) {
             text(row, "td", DndTime.format(record.paidAt, "—"));
             text(row, "td", DndTime.format(record.refundedAt, "—"));
             const item = text(row, "td", record.refundNote || "—");
+            const delivery = text(row, "td", "");
+            let hasNotification = false;
+            for (const notification of notifications) {
+                if (notification.paymentId !== record.id) continue;
+                hasNotification = true;
+                text(delivery, "p", notification.channel + "：" + (noticeLabels[notification.status] || notification.status));
+            }
+            if (!hasNotification) delivery.textContent = notificationsKnown ? "—（無通知紀錄）" : "無法讀取，請重新整理";
             if (record.status !== "REFUND_PENDING" && record.status !== "REVIEW_REQUIRED") continue;
             const note = document.createElement("input");
             note.setAttribute("aria-label", "退款說明 " + record.merchantOrderNo);
-            note.placeholder = "填寫退款日期與對帳單號";
+            note.placeholder = "內部說明：金流處理日期與對帳單號（不寄給玩家）";
             note.maxLength = 255;
             item.replaceChildren(note);
             const button = text(item, "button", "登記已全額退款");
@@ -248,7 +261,7 @@ async function loadPaymentLog(eventId) {
                     note.focus();
                     return;
                 }
-                if (!window.confirm("確認已在藍新後台完成全額退款？")) return;
+                if (!window.confirm("確認已在藍新後台完成全額退款？登記成功後會安排 Email 與已綁定 LINE 通知。")) return;
                 setBusy(true);
                 try {
                     await checked("/admin/events/" + eventId + "/payments/" + record.id + "/refund", {
@@ -284,10 +297,10 @@ function openForm(event, opener) {
     for (const picker of datePickers.values()) picker.setMode(editingId === null);
     updateDateMinimums();
     editable = !event || canEdit(event);
-    formTitle.textContent = event ? "活動資料／修改" : "新增活動";
+    formTitle.textContent = event ? "活動資料修改／收退款" : "新增活動";
     document.getElementById("form-info").textContent = event
         ? "已報名：" + event.registeredCount + " 人。名額上限不得低於此人數。" +
-          (editable ? "" : " 此活動已取消、關閉或開始，僅供查看。") : "";
+          (editable ? "" : " 此活動資料僅供查看；仍可處理收退款。") : "";
     if (event) for (const key of keys) {
         if (key === "beginnerFriendly") form.elements[key].checked = event[key];
         else if (key === "tags") form.elements[key].value = (event.tags || []).join("\n");
@@ -694,4 +707,10 @@ document.getElementById("roster-refresh").addEventListener("click", async () => 
     try { await renderRoster(); await loadList(); rosterMessage.textContent = "名單已更新。"; }
     catch (error) { rosterMessage.textContent = error.message; }
     finally { setRosterBusy(false); }
+});
+
+document.getElementById("reload-payment-log").addEventListener("click", async () => {
+    if (busy || editingId === null) return;
+    setBusy(true);
+    try { await loadPaymentLog(editingId); } finally { setBusy(false); }
 });

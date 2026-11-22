@@ -23,13 +23,15 @@ public class PaymentLifecycle {
     private final RegistrationRepository registrations;
     private final PaymentRepository payments;
     private final MemberRepository members;
+    private final RefundNotificationService refundNotifications;
 
     public PaymentLifecycle(EventRepository events, RegistrationRepository registrations,
-            PaymentRepository payments, MemberRepository members) {
+            PaymentRepository payments, MemberRepository members, RefundNotificationService refundNotifications) {
         this.events = events;
         this.registrations = registrations;
         this.payments = payments;
         this.members = members;
+        this.refundNotifications = refundNotifications;
     }
 
     static LocalDateTime now() {
@@ -120,9 +122,20 @@ public class PaymentLifecycle {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void recordRefund(Long memberId, Long eventId, Long paymentId, String note) {
         requireAdmin(memberId);
-        events.findByIdForUpdate(eventId).orElseThrow(() -> new IllegalArgumentException("查無活動。"));
-        Payment payment = payments.findById(paymentId).orElseThrow(() -> new IllegalArgumentException("查無付款。"));
-        Registration registration = registrations.findById(payment.getRegistrationId()).orElseThrow();
+        Optional<Event> optionalEvent = events.findByIdForUpdate(eventId);
+        if (optionalEvent.isEmpty()) {
+            throw new IllegalArgumentException("查無活動。");
+        }
+        Optional<Payment> optionalPayment = payments.findById(paymentId);
+        if (optionalPayment.isEmpty()) {
+            throw new IllegalArgumentException("查無付款。");
+        }
+        Payment payment = optionalPayment.get();
+        Optional<Registration> optionalRegistration = registrations.findById(payment.getRegistrationId());
+        if (optionalRegistration.isEmpty()) {
+            throw new java.util.NoSuchElementException();
+        }
+        Registration registration = optionalRegistration.get();
         if (!eventId.equals(registration.getEventId())) {
             throw new IllegalArgumentException("此付款不屬於指定活動。");
         }
@@ -136,6 +149,7 @@ public class PaymentLifecycle {
         payment.setPaymentStatus(PaymentStatus.REFUNDED);
         payment.setRefundedAt(now());
         payment.setRefundNote(note);
+        refundNotifications.enqueue(payment, registration.getMemberId(), eventId);
     }
 
     private void requireAdmin(Long memberId) {

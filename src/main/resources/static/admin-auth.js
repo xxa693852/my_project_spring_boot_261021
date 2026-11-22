@@ -1,6 +1,6 @@
 // 後台只使用 HttpOnly Session Cookie；不讀取或保存會員的長效 JWT。
 (() => {
-    const inAdmin = /^\/admin-(events|members)\.html$/.test(location.pathname);
+    const inAdmin = /^\/admin-(events|members|reports)\.html$/.test(location.pathname);
     const managingComments = location.pathname === "/event-detail.html" && new URLSearchParams(location.search).get("admin") === "1";
     let profile;
     let revision = 0;
@@ -17,7 +17,7 @@
     let touching = false;
     let expiredDialog;
     let previousFocus;
-    const destination = value => /^\/admin-(events|members)\.html$/.test(value || "") ? value : "/admin-events.html";
+    const destination = value => /^\/admin-(events|members|reports)\.html$/.test(value || "") ? value : "/admin-events.html";
     const loginUrl = () => "/admin-login.html?returnTo=" + encodeURIComponent(destination(location.pathname));
     async function errorMessage(response, fallback) {
         const data = await response.json().catch(() => ({}));
@@ -220,7 +220,7 @@
     function renderNav() {
         const nav = document.getElementById("member-nav");
         if (!nav) return;
-        for (const [href, label] of [["/events.html", "返回前台"], ["/admin-events.html", "活動管理"], ["/admin-members.html", "會員管理"]]) {
+        for (const [href, label] of [["/events.html", "返回前台"], ["/admin-events.html", "活動管理"], ["/admin-members.html", "會員管理"], ["/admin-reports.html", "報表匯出"]]) {
             const link = document.createElement("a");
             link.href = href;
             link.textContent = label;

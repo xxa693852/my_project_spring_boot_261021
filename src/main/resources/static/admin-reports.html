@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D&amp;D 報表匯出</title><link rel="stylesheet" href="/site.css?v=refund-report-1">
+<script src="/admin-auth.js?v=refund-report-1" defer></script><script src="/admin-reports.js?v=1" defer></script></head>
+<body><header class="site-header"><div class="site-bar"><a class="site-brand" href="/events.html">D&amp;D 活動報名</a><nav id="member-nav" aria-label="後台導覽"></nav></div></header>
+<main class="page"><h1>報表匯出</h1>
+<p>下載統計摘要、活動統計與交易明細，金額以新台幣元計算。</p>
+<form id="report-form"><div class="report-dates">
+<label>起日（台北時間）<input id="report-from" type="date" min="1000-01-01" max="9998-12-31" required></label>
+<label>迄日（包含當天）<input id="report-through" type="date" min="1000-01-01" max="9998-12-31" required></label></div>
+<p class="field-help">區間收款依付款成功時間；區間退款依「後台標記已退款時間」，並非金流實際處理或銀行入帳時間。</p>
+<p class="field-help">目前已報名人數、待退款及已收款待核對款項為報表產生當下的狀態；待退款與已收款待核對款項不受日期區間限制。</p>
+<p class="field-help">「已收款待核對」指已收到款項，但系統無法直接確認為有效報名，例如付款保留已逾時才收到付款成功通知，需管理員核對。款項已依付款成功時間計入相應區間收款，請勿再次加總。</p>
+<p class="field-help">收款減已退款尚未扣除待退款款項及各項成本，不代表純利潤。下載檔案包含會員與交易資料，請妥善保存。</p>
+<button id="download-report" type="submit">下載 Excel</button><p id="report-message" role="status" aria-live="polite"></p></form></main></body></html>

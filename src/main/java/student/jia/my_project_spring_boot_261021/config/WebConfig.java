@@ -36,7 +36,7 @@ public class WebConfig implements WebMvcConfigurer {
             );
         // 後台頁面與 API 使用獨立驗證；只有專用登入 API 不要求既有登入狀態。
         registry.addInterceptor(adminAuthInterceptor)
-            .addPathPatterns("/admin/**", "/admin-events.html", "/admin-members.html")
+            .addPathPatterns("/admin/**", "/admin-events.html", "/admin-members.html", "/admin-reports.html")
             .excludePathPatterns("/admin/auth/login");
     }
 }
