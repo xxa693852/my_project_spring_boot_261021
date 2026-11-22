@@ -70,6 +70,8 @@ a:hover { color: #3d290d; }
 [hidden] { display: none !important; }
 
 html { scroll-padding-top: calc(var(--site-header-height, 4rem) + .75rem); }
+/* 提示出現後即使新增捲軸，列表欄寬與封面尺寸仍維持一致。 */
+html.events-page { scrollbar-gutter: stable; }
 
 .site-header {
     position: sticky;
@@ -144,6 +146,29 @@ article, form { padding: clamp(1rem, 3vw, 1.75rem); }
 #event-dialog::backdrop { background: rgb(20 39 31 / 65%); }
 html:has(#event-dialog[open]) { overflow: hidden; }
 #event-form { margin: 0; border: 0; }
+/* 標題列位於表單外，捲到中段或底部仍能直接關閉長視窗。 */
+.admin-dialog-header {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--parchment);
+    border-bottom: 1px solid var(--border);
+}
+.admin-dialog-header h2 { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.admin-dialog-header .dialog-close {
+    flex: none;
+    margin: 0;
+    white-space: nowrap;
+    color: var(--forest-dark);
+    background: transparent;
+    border-color: #8b9488;
+}
+.admin-dialog-header .dialog-close:hover { color: var(--forest-dark); background: #e7ecdf; }
 .admin-event-toolbar {
     position: sticky;
     top: var(--site-header-height, 4rem);
@@ -237,19 +262,80 @@ form button { margin-top: 1rem; }
     background: #443328;
     object-fit: cover;
 }
-.event-card .event-cover { aspect-ratio: 4 / 3; }
+/* 封面框以原本較短的 4:3 比例起算，內容較高時填滿左側，不額外撐長卡片。 */
+.event-cover-frame {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    background: #443328;
+}
+.event-cover-frame::before {
+    content: "";
+    display: block;
+    padding-top: 75%;
+}
+/* 圖片不參與卡片高度計算；以等比例裁切填滿封面框。 */
+.event-card .event-cover {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+}
+/* 卡片只放簡短狀態；詳細衝突清單放在對話框，避免卡片與下方列表跳動。 */
+.event-registration-feedback {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    height: 3.2rem;
+    overflow: auto;
+}
+.event-registration-feedback button {
+    flex: none;
+    padding: .2rem .5rem;
+    font-size: .9rem;
+}
+#registration-conflict-dialog {
+    width: min(560px, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--ink);
+    background: var(--parchment);
+    overflow-wrap: anywhere;
+}
+#registration-conflict-dialog::backdrop { background: rgb(20 39 31 / 65%); }
+#registration-conflict-content ul { padding-inline-start: 1.5rem; }
+#registration-conflict-content li { margin-block: .75rem; }
+#registration-conflict-dialog form { padding: 0; margin-top: 1rem; border: 0; box-shadow: none; }
+#registration-conflict-dialog form button { margin: 0; }
+html:has(#registration-conflict-dialog[open]) { overflow: hidden; }
 .event-card-body, .event-summary, .event-description, #registration {
     min-width: 0;
     padding: clamp(1.1rem, 3vw, 2rem);
 }
 .event-card-heading {
-    display: flex;
-    align-items: baseline;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
     gap: .4rem .75rem;
-    flex-wrap: wrap;
     margin-bottom: .65rem;
 }
 .event-card-heading h2 { margin: 0; }
+/* 列表只顯示摘要；完整標題、地址及主持人仍保留於詳情頁與原始文字。 */
+.event-card-heading h2, .event-card-body .event-location {
+    min-width: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+.event-card-body .event-host {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.event-card-heading .event-status { white-space: nowrap; }
 .event-status {
     padding: .14rem .55rem;
     border: 1px solid #c8bda9;
@@ -314,7 +400,13 @@ form button { margin-top: 1rem; }
     #member-nav button { padding: .2rem .55rem; }
     .nav-session-status { display: none; }
     .event-card, #settings { grid-template-columns: minmax(0, 1fr); }
-    .event-card .event-cover { height: clamp(165px, 48vw, 285px); aspect-ratio: auto; }
+    .event-cover-frame { height: clamp(165px, 48vw, 285px); }
+    .event-cover-frame::before { display: none; }
+}
+
+@media (max-width: 400px) {
+    .event-card-body .actions { gap: .4rem .5rem; font-size: .9rem; }
+    .event-card-body .actions button { flex: 0 1 auto; padding: .4rem .5rem; }
 }
 
 .cancel-registration-dialog {
@@ -384,6 +476,21 @@ html:has(#admin-expired-dialog[open]) { overflow: hidden; }
 .payment-table tbody th { font-weight: 500; }
 .payment-table p { margin: .35rem 0 0; }
 .payment-table button { width: 100%; }
+
+/* 會員紀錄使用與後台對帳相同的表格；窄螢幕只捲動表格區域。 */
+#member-dialog { width: min(1080px, calc(100% - 2rem)); }
+#member-details > h3 { margin-top: 1.5rem; }
+#member-dialog .member-registration-table { min-width: 560px; }
+#member-dialog .member-registration-table th:first-child { width: 48%; }
+#member-dialog .member-registration-table th:last-child { width: 32%; }
+#member-dialog .member-suspension-table { min-width: 1000px; }
+#member-dialog .member-suspension-table th:first-child { width: 17%; }
+#member-dialog .member-suspension-table th:nth-child(2) { width: 8%; }
+#member-dialog .member-suspension-table th:nth-child(3) { width: 11%; }
+#member-dialog .member-suspension-table th:nth-child(4) { width: 17%; }
+#member-dialog .member-suspension-table th:nth-child(5) { width: 28%; }
+#member-dialog .member-suspension-table th:last-child { width: 19%; }
+#member-dialog .member-suspension-table td:nth-child(5) { white-space: pre-wrap; }
 .event-card-heading h2, .event-label, .event-facts > div, .site-bar > *, #member-nav { min-width: 0; max-width: 100%; }
 .event-label { overflow-wrap: anywhere; }
 textarea { resize: vertical; }
@@ -400,3 +507,66 @@ dialog { overflow-y: auto; overflow-x: hidden; }
 
 /* 查看既有活動時提供較寬的對帳空間；新增活動仍沿用原本表單寬度。 */
 #event-dialog:has(#payment-log:not([hidden])) { width: min(1080px, calc(100% - 2rem)); }
+
+/* 活動報名名單：桌面表格與手機水平捲動共用。 */
+#roster-dialog { width: min(1080px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); color: var(--ink); background: var(--parchment); overflow-wrap: anywhere; }
+#roster-dialog::backdrop { background: rgb(20 39 31 / 65%); }
+#roster-dialog textarea { width: 100%; box-sizing: border-box; }
+#roster-history { padding-inline-start: 1.25rem; }
+#roster-history li { margin-block: .75rem; }
+html:has(#roster-dialog[open]) { overflow: hidden; }
+
+/* 名額入口和操作分區，避免兩排按鈕黏在一起。 */
+#event-list .admin-event-card { padding: clamp(1.1rem, 3vw, 2rem); }
+#event-list .admin-event-card h3 { margin: 0 0 1rem; line-height: 1.5; }
+#event-list .admin-event-card > p { margin-block: .65rem; max-width: 75ch; }
+#event-list .admin-event-card .admin-slot-link { display: block; margin: 1.25rem 0 0; padding: .6rem .85rem; color: var(--forest); background: #e8eee6; border: 1px solid #a8b8a7; font-size: .95rem; text-align: left; }
+#event-list .admin-event-card .admin-slot-link:hover { background: #dce7d9; }
+#event-list .admin-event-card .actions { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--border); gap: .75rem; }
+#event-list .admin-event-card .actions button { margin: 0; }
+button.admin-danger-outline { color: #8e302b; background: #fff8f5; border-color: #bd7770; }
+button.admin-danger-outline:hover { color: #72201d; background: #f7e2dd; border-color: #8e302b; }
+#roster-dialog { padding: 0; }
+.roster-dialog-content { padding: clamp(1rem, 3vw, 2rem); }
+#roster-dialog > h2 { margin: 0 0 .65rem; font-size: 1.5rem; }
+#roster-dialog .roster-event-name { margin: 0 0 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); font-weight: 650; font-size: 1.05rem; line-height: 1.6; }
+#roster-summary { padding: .85rem 1rem; background: #e8eee6; border-radius: 8px; line-height: 1.8; }
+#roster-dialog .roster-dialog-content > .field-help { line-height: 1.8; margin-block: .65rem; }
+#roster-dialog .payment-table td { padding-block: 1rem; }
+#roster-dialog .payment-table button { margin-top: .6rem; }
+#roster-dialog .roster-selected td { background: #fff0e9; border-block: 2px solid #b54b3c; }
+#roster-dialog .roster-selected td:first-child { border-left: 4px solid #b54b3c; }
+#roster-dialog .roster-selected button { color: #fff; background: #96372e; border-color: #96372e; }
+#roster-cancel-form { margin: 1.75rem 0 2rem; padding: clamp(1rem, 3vw, 1.5rem); border: 2px solid #b54b3c; border-left-width: 6px; border-radius: 12px; background: #fff6f0; box-shadow: none; }
+#roster-cancel-form h3 { color: #8e302b; margin: 0 0 .75rem; }
+#roster-cancel-form .roster-warning { color: #8e302b; line-height: 1.8; }
+#roster-target { padding: .85rem; background: #f5e6de; border-radius: 8px; line-height: 1.8; margin-block: 1rem 1.25rem; font-weight: 650; }
+#roster-cancel-form textarea { margin-top: .5rem; border-color: #b8786d; background: #fffefa; }
+#roster-cancel-form textarea:focus-visible { outline-color: #96372e; }
+#roster-cancel-form .actions { gap: .85rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #d6aaa0; }
+#roster-cancel-form .actions button { margin: 0; }
+#roster-cancel-form button.roster-danger { color: #fff; background: #96372e; border-color: #96372e; }
+#roster-cancel-form button.roster-danger:hover { background: #75251f; border-color: #75251f; }
+#roster-dialog .roster-dialog-content > .actions { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+#roster-history { line-height: 1.8; }
+@media (max-width: 600px) {
+    #roster-cancel-form .actions { flex-direction: column; align-items: stretch; }
+    #roster-cancel-form .actions > button { flex: initial; width: 100%; }
+}
+
+#roster-cancel-form #roster-reason-help { color: #96372e; font-weight: 700; }
+
+#roster-final-dialog { position: fixed; inset: 0; margin: auto; width: min(540px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-wrap: anywhere; }
+#roster-final-dialog .roster-final-content { padding: clamp(1.25rem, 4vw, 2rem); }
+#roster-final-title { margin-top: 0; font-size: 1.5rem; }
+#roster-final-description, #roster-final-reason { white-space: pre-wrap; line-height: 1.8; }
+#roster-final-reason { padding: .85rem; border: 1px solid #d6aaa0; border-radius: 8px; background: #fff6f0; }
+#roster-final-dialog .roster-final-warning { color: #96372e; font-weight: 700; line-height: 1.8; }
+#roster-final-dialog .actions { margin-top: 1.25rem; gap: 1rem; }
+
+#roster-dialog .roster-history-table { min-width: 1150px; }
+#roster-dialog .roster-history-table th:nth-child(1), #roster-dialog .roster-history-table th:nth-child(4) { width: 15%; }
+#roster-dialog .roster-history-table th:nth-child(2), #roster-dialog .roster-history-table th:nth-child(3) { width: 8%; }
+#roster-dialog .roster-history-table th:nth-child(5) { width: 24%; }
+#roster-dialog .roster-history-table th:nth-child(6), #roster-dialog .roster-history-table th:nth-child(7) { width: 15%; }
+#roster-history td:nth-child(5) { white-space: pre-wrap; }

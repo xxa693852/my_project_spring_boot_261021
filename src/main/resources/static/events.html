@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" class="events-page">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&D 活動列表</title>
 
-    <link rel="stylesheet" href="/site.css?v=batch4-1">
+    <link rel="stylesheet" href="/site.css?v=compact-event-cover-4">
     <script src="/site-time.js?v=batch4-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/auth.js?v=admin-member-bridge-1" defer></script>
@@ -15,7 +15,7 @@
     <script src="/page-jump.js?v=1" defer></script>
     <link rel="stylesheet" href="/event-search.css?v=1">
     <script src="/event-fee.js?v=1" defer></script>
-    <script src="/events.js?v=batch4-1" defer></script>
+    <script src="/events.js?v=compact-event-cover-4" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=1">
     <script src="/search-history.js?v=1" defer></script>
 </head>
@@ -57,5 +57,10 @@
         </nav>
 
     </main>
+    <dialog id="registration-conflict-dialog" aria-labelledby="registration-conflict-title">
+        <h2 id="registration-conflict-title">報名時段衝突</h2>
+        <div id="registration-conflict-content"></div>
+        <form method="dialog"><button autofocus>關閉</button></form>
+    </dialog>
 </body>
 </html>

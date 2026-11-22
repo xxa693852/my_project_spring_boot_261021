@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 活動管理</title>
-    <link rel="stylesheet" href="/site.css?v=batch4-1">
+    <link rel="stylesheet" href="/site.css?v=sticky-admin-close-1">
     <script src="/site-time.js?v=batch4-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/event-presentation.js?v=batch4-1" defer></script>
@@ -13,7 +13,7 @@
     <script src="/page-jump.js?v=1" defer></script>
     <link rel="stylesheet" href="/event-search.css?v=1">
     <script src="/event-validation.js?v=batch2-1" defer></script>
-    <script src="/admin-events.js?v=batch4-refresh-1" defer></script>
+    <script src="/admin-events.js?v=sticky-admin-close-1" defer></script>
     <script src="/search-history.js?v=1" defer></script>
     <script src="/field-counters.js?v=batch3-1" defer></script>
 </head>
@@ -36,8 +36,11 @@
             <button id="refresh-moderation-status" type="button">重新整理審核狀態</button>
             <p>所有活動日期與時間均以台北時間（Asia/Taipei，UTC+08:00）輸入及顯示。</p>
             <dialog id="event-dialog" aria-labelledby="form-title">
-                <form id="event-form" novalidate>
+                <div class="admin-dialog-header">
                     <h2 id="form-title" tabindex="-1">新增活動</h2>
+                    <button id="event-close-top" class="dialog-close" type="button" aria-label="關閉活動表單"><span aria-hidden="true">×</span> 關閉</button>
+                </div>
+                <form id="event-form" novalidate>
                     <p id="form-info"></p>
                     <fieldset id="event-fields">
                         <label for="title">活動名稱（最多 100 字元）</label>
@@ -148,6 +151,64 @@
                 <button type="submit" value="cancel">確認取消整場活動</button>
             </div>
         </form>
+    </dialog>
+    <dialog id="roster-dialog" aria-labelledby="roster-title">
+        <div class="admin-dialog-header">
+            <h2 id="roster-title">管理報名</h2>
+            <button id="roster-close-top" class="dialog-close" type="button" aria-label="關閉管理報名"><span aria-hidden="true">×</span> 關閉</button>
+        </div>
+        <div class="roster-dialog-content">
+        <p id="roster-event-name" class="roster-event-name"></p>
+        <p id="roster-summary"></p>
+        <p class="field-help">取消會立即釋出名額，無法保證恢復原席位。截止後補位仍須先調整報名截止時間；活動開始後僅供查看。</p>
+        <p class="field-help">已付款者取消後列為待全額退款；請至「修改活動 → 付款與退款紀錄」登記已在藍新完成的退款。</p>
+        <p id="roster-message" role="status" aria-live="polite"></p>
+        <div class="table-scroll" role="region" aria-label="報名名單，可左右捲動" tabindex="0">
+            <table class="payment-table">
+                <caption>此活動全部報名紀錄（台北時間）</caption>
+                <thead><tr><th scope="col">姓名／帳號</th><th scope="col">報名時間</th><th scope="col">報名狀態</th><th scope="col">付款狀態</th><th scope="col">取消時間／操作</th></tr></thead>
+                <tbody id="roster-list"></tbody>
+            </table>
+        </div>
+        <form id="roster-cancel-form" aria-labelledby="roster-cancel-title" hidden>
+            <h3 id="roster-cancel-title">確認個別取消</h3>
+            <p class="roster-warning">取消後會立即釋出席位，其他玩家可能補上。請先核對下列玩家與原因。</p>
+            <p id="roster-target"></p>
+            <label for="roster-reason">取消原因（必填，最多 255 字元）</label>
+            <p id="roster-reason-help" class="field-help">此原因會透過 Email 與已綁定的 LINE 通知玩家，請確認內容適合對外通知。</p>
+            <textarea aria-describedby="roster-reason-help" id="roster-reason" data-char-limit="255" maxlength="255" required rows="3"></textarea>
+            <div class="actions">
+                <button type="submit" class="roster-danger">確認取消報名並釋出名額</button>
+                <button type="button" id="roster-keep">保留報名</button>
+            </div>
+        </form>
+        <h3>管理員取消歷程</h3>
+        <p class="field-help">只記錄本功能啟用後的管理員個別取消；重新報名不會移除歷程。</p>
+        <div class="table-scroll" role="region" aria-label="管理員取消歷程，可左右捲動" tabindex="0">
+            <table class="payment-table roster-history-table">
+                <caption>管理員個別取消紀錄（台北時間，最新在前）</caption>
+                <thead><tr><th scope="col">取消時間</th><th scope="col">會員編號</th><th scope="col">管理員編號</th><th scope="col">原報名時間</th><th scope="col">取消原因</th><th scope="col">Email 通知</th><th scope="col">LINE 通知</th></tr></thead>
+                <tbody id="roster-history"></tbody>
+            </table>
+        </div>
+        <div class="actions">
+            <button type="button" id="roster-refresh">重新整理名單</button>
+            <button type="button" id="roster-close" class="button-secondary">關閉名單</button>
+        </div>
+        </div>
+    </dialog>
+    <dialog id="roster-final-dialog" class="cancel-registration-dialog" aria-labelledby="roster-final-title" aria-describedby="roster-final-description">
+        <div class="roster-final-content">
+            <h2 id="roster-final-title">再次確認取消報名</h2>
+            <p id="roster-final-description"></p>
+            <p class="field-help">下列原因會直接寄給玩家：</p>
+            <p id="roster-final-reason"></p>
+            <p class="roster-final-warning">確認後將立即釋出名額，並安排 Email 與已綁定 LINE 的取消通知。已付款者將列為待全額退款。</p>
+            <div class="actions">
+                <button type="button" id="roster-final-keep" autofocus>保留報名</button>
+                <button type="button" id="roster-final-confirm" class="admin-danger-outline">確認取消報名</button>
+            </div>
+        </div>
     </dialog>
 </body>
 </html>

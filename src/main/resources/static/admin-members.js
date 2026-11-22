@@ -33,6 +33,37 @@ function dateText(value) {
     return DndTime.format(value, "—");
 }
 
+function createMemberHistoryTable(title, columns, className) {
+    addText(details, "h3", title);
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    wrapper.setAttribute("role", "region");
+    wrapper.setAttribute("aria-label", title + "，可左右捲動");
+    wrapper.tabIndex = 0;
+    const table = document.createElement("table");
+    table.className = "payment-table member-history-table " + className;
+    addText(table, "caption", title + "（台北時間）");
+    const head = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    for (const column of columns) {
+        const cell = addText(headerRow, "th", column);
+        cell.setAttribute("scope", "col");
+    }
+    head.append(headerRow);
+    const body = document.createElement("tbody");
+    table.append(head, body);
+    wrapper.append(table);
+    details.append(wrapper);
+    return body;
+}
+
+function addEmptyHistoryRow(body, columnCount, message) {
+    const row = document.createElement("tr");
+    const cell = addText(row, "td", message);
+    cell.colSpan = columnCount;
+    body.append(row);
+}
+
 function memberStatus(member) {
     if (member.status !== "ACTIVE") return "已停用";
     if (!member.suspended) return "正常";
@@ -99,29 +130,40 @@ async function renderDetails(id) {
     addText(details, "p", "帳號：" + member.account + " · Email：" + member.email);
     addText(details, "p", "狀態：" + memberStatus(member));
     addText(details, "p", "加入時間：" + dateText(member.createdAt));
-    addText(details, "h3", "報名紀錄");
-    const history = addText(details, "ul", "");
+    const history = createMemberHistoryTable("報名紀錄", ["活動名稱", "報名狀態", "活動開始時間"], "member-registration-table");
     for (const entry of data.registrations) {
         const status = entry.status === "REGISTERED" ? "已報名" : "已取消";
-        addText(history, "li", (entry.eventTitle || "場次 #" + entry.eventId) + " · " + status
-            + " · " + dateText(entry.startAt));
+        const row = document.createElement("tr");
+        addText(row, "td", entry.eventTitle || "場次 #" + entry.eventId);
+        addText(row, "td", status);
+        addText(row, "td", dateText(entry.startAt));
+        history.append(row);
     }
-    if (!history.childElementCount) addText(history, "li", "沒有報名紀錄。");
+    if (!history.childElementCount) addEmptyHistoryRow(history, 3, "沒有報名紀錄。");
 
-    addText(details, "h3", "停權紀錄");
-    const actions = addText(details, "ul", "");
+    const actions = createMemberHistoryTable("停權紀錄", ["操作時間", "管理員", "操作", "停權截止", "原因", "通知狀態"], "member-suspension-table");
     for (const entry of data.actions) {
         let description = "解除停權";
         if (entry.action === "SUSPEND") {
-            description = entry.suspendedUntil ? "停權至 " + dateText(entry.suspendedUntil) : "永久停權";
+            description = entry.suspendedUntil ? "限期停權" : "永久停權";
         }
         const notice = { PENDING: "待寄送", SENDING: "處理中", SENT: "已送出", FAILED: "寄送失敗", UNKNOWN: "待確認", SKIPPED: "已略過" };
-        const delivery = entry.notificationStatus ? " · 通知：" + notice[entry.notificationStatus]
-            + (entry.notificationChannel ? "（" + entry.notificationChannel + "）" : "") : "";
-        addText(actions, "li", dateText(entry.actedAt) + " · 管理員 #" + entry.actorId
-            + " · " + description + " · " + entry.reason + delivery);
+        const delivery = entry.notificationStatus ? (notice[entry.notificationStatus] || entry.notificationStatus)
+            + (entry.notificationChannel ? "（" + entry.notificationChannel + "）" : "") : "—";
+        let suspensionEnd = "—";
+        if (entry.action === "SUSPEND") {
+            suspensionEnd = entry.suspendedUntil ? dateText(entry.suspendedUntil) : "無期限";
+        }
+        const row = document.createElement("tr");
+        addText(row, "td", dateText(entry.actedAt));
+        addText(row, "td", "#" + entry.actorId);
+        addText(row, "td", description);
+        addText(row, "td", suspensionEnd);
+        addText(row, "td", entry.reason || "—");
+        addText(row, "td", delivery);
+        actions.append(row);
     }
-    if (!actions.childElementCount) addText(actions, "li", "沒有停權紀錄。");
+    if (!actions.childElementCount) addEmptyHistoryRow(actions, 6, "沒有停權紀錄。");
 
     suspension.reset();
     deadlinePicker.setMode(true);

@@ -1,5 +1,12 @@
 const message = document.getElementById("message");
 const eventList = document.getElementById("event-list");
+const conflictDialog = document.getElementById("registration-conflict-dialog");
+const conflictContent = document.getElementById("registration-conflict-content");
+
+function openRegistrationConflict(details) {
+    conflictContent.replaceChildren(details);
+    conflictDialog.showModal();
+}
 
 function addText(parent, tag, value, className) {
     const element = document.createElement(tag);
@@ -48,11 +55,16 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     cover.alt = "";
     cover.loading = "lazy";
 
+    const coverFrame = document.createElement("div");
+    coverFrame.className = "event-cover-frame";
+    coverFrame.append(cover);
+
     const body = document.createElement("div");
     body.className = "event-card-body";
     const heading = document.createElement("div");
     heading.className = "event-card-heading";
-    addText(heading, "h2", event.title);
+    const eventTitle = addText(heading, "h2", event.title);
+    eventTitle.title = event.title;
     const status = registrationStatus(event);
     const badge = addText(heading, "span", status, status === "可報名" ? "event-status event-status-open" : "event-status");
     body.append(heading);
@@ -64,14 +76,16 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     const locationLink = createEventMapLink(event.location, event.location);
     if (locationLink) {
         locationLink.setAttribute("aria-label", event.location + "，在 Google 地圖查看（另開分頁）");
+        locationLink.title = event.location;
         const locationLine = document.createElement("p");
-        locationLine.className = "event-meta";
+        locationLine.className = "event-meta event-location";
         locationLine.append(locationLink);
         body.append(locationLine);
     } else {
         addText(body, "p", "地點未提供", "event-meta");
     }
-    addText(body, "p", "主持人：" + event.hostName, "event-meta");
+    const host = addText(body, "p", "主持人：" + event.hostName, "event-meta event-host");
+    host.title = event.hostName;
     const slots = addText(body, "p", "剩餘名額 " + event.remainingSlots + " / " + event.capacity, "event-count");
 
     if (event.description?.trim()) {
@@ -101,8 +115,9 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     registered.textContent = "✓ 已報名";
     actions.append(register, registered, link, cancel);
     body.append(actions);
-    const feedback = addText(body, "div", "");
+    const feedback = addText(body, "div", "", "event-registration-feedback");
     feedback.setAttribute("role", "status");
+    const conflictDetails = document.createElement("div");
     let busy = false;
     let isRegistered = registration?.status === "REGISTERED";
     const hasHold = registration?.status === "PENDING_PAYMENT";
@@ -135,13 +150,25 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
         if (removing && !await confirmRegistrationCancellation(event.title)) return;
         busy = true;
         register.disabled = cancel.disabled = true;
+        feedback.removeAttribute("data-registration-conflict");
         feedback.textContent = "處理中……";
         try {
             const path = removing ? "/registration/events/" + event.id
                 : "/registration?eventId=" + event.id;
             const response = await DndAuth.request(path, { method });
             if (!response.ok) {
-                if (!removing && await showRegistrationConflict(response, feedback)) return;
+                if (!removing && await showRegistrationConflict(response, conflictDetails)) {
+                    const summary = document.createElement("span");
+                    summary.textContent = "時段重疊，無法報名。";
+                    const details = document.createElement("button");
+                    details.type = "button";
+                    details.textContent = "查看時段衝突";
+                    details.addEventListener("click", () => openRegistrationConflict(conflictDetails));
+                    feedback.replaceChildren(summary, details);
+                    feedback.setAttribute("data-registration-conflict", "");
+                    openRegistrationConflict(conflictDetails);
+                    return;
+                }
                 const error = new Error(await DndAuth.errorMessage(response, "操作失敗，請稍後再試。"));
                 error.status = response.status;
                 throw error;
@@ -152,6 +179,14 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
                 event.remainingSlots + (removing ? 1 : -1)));
             event = { ...event, remainingSlots, canRegister: remainingSlots > 0 };
             updateActions();
+            if (removing) {
+                // 取消後其他卡片的舊衝突可能已解除，交由下次報名重新檢查。
+                const oldConflicts = eventList.querySelectorAll("[data-registration-conflict]");
+                for (const oldFeedback of oldConflicts) {
+                    oldFeedback.removeAttribute("data-registration-conflict");
+                    oldFeedback.textContent = "報名狀態已更新，請重新嘗試報名。";
+                }
+            }
             feedback.textContent = removing ? "已取消報名。" : "報名成功。";
             if (removing && !register.hidden) {
                 register.disabled = false;
@@ -191,7 +226,7 @@ function createEventCard(event, page, registration, registrationStatusKnown) {
     });
     cancel.addEventListener("click", () => changeRegistration("DELETE"));
     updateActions();
-    card.append(cover, body);
+    card.append(coverFrame, body);
     return card;
 }
 

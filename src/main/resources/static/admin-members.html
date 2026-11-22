@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>D&amp;D 會員管理</title>
-    <link rel="stylesheet" href="/site.css?v=batch4-1">
+    <link rel="stylesheet" href="/site.css?v=sticky-admin-close-1">
     <script src="/site-time.js?v=batch4-1" defer></script>
     <script src="/admin-auth.js?v=admin-free-registration-1" defer></script>
     <script src="/taipei-date-picker.js?v=1" defer></script>
     <link rel="stylesheet" href="/page-jump.css?v=2">
     <script src="/page-jump.js?v=1" defer></script>
-    <script src="/admin-members.js?v=batch4-1" defer></script>
+    <script src="/admin-members.js?v=member-history-tables-1" defer></script>
     <script src="/search-history.js?v=1" defer></script>
 </head>
 <body>
@@ -44,9 +44,11 @@
         </nav>
     </section>
     <dialog id="member-dialog" aria-labelledby="member-title">
-        <div class="member-dialog-content">
-            <button id="member-close" type="button" autofocus class="button-secondary">關閉</button>
+        <div class="admin-dialog-header">
             <h2 id="member-title">會員詳情</h2>
+            <button id="member-close" type="button" autofocus class="dialog-close" aria-label="關閉會員詳情"><span aria-hidden="true">×</span> 關閉</button>
+        </div>
+        <div class="member-dialog-content">
             <p id="member-detail-status" role="status"></p>
             <div id="member-details"></div>
             <form id="member-suspension" hidden>

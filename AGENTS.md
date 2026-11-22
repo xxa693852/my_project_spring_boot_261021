@@ -104,6 +104,47 @@ Member member = optionalMember.get();
 3. 不以直接修改 `flyway_schema_history`、關閉 Flyway 驗證或擅自執行 `repair` 解決註解造成的校驗錯誤。應保留學習對照，還原本次誤改的正式檔，且不得覆蓋使用者其他修改。
 4. 回報時分別說明資料庫 COMMENT、學習用註解及正式 migration 的變更與驗證結果。只有新增或修改學習對照及文件時，不需要重新部署；需要套用新 migration 時，依使用者授權提供適用的部署指令或執行部署，不擅自更新 AWS。
 
+## AWS 部署指令交付方式
+
+使用者要求「給部署指令」時，預設沿用以下兩段式格式，每段提供可整段複製的程式碼，不拆成多段零散指令。提供指令不等於已執行部署；只有使用者明確要求代為部署時才操作 AWS。
+
+### 第一段：本機 PowerShell 上傳並登入 SSH
+
+1. 先完成本次必要檢查與打包，明確回報測試範圍；若使用 `-DskipTests` 打包，不宣稱已執行完整測試。
+2. 使用這次實際產生的 JAR 計算 SHA256，不沿用舊對話、文件或前次部署的校驗碼。若尚未打包或無法計算，明確說明，不能捏造校驗碼。
+3. PowerShell 指令先核對本機 JAR 與本次預期 SHA256，再使用 `scp` 上傳為 AWS 的 `app.jar.new`。上傳失敗必須中止，不接著部署。
+4. 上傳成功後使用 `ssh` 登入，讓使用者接著貼上第二段。
+5. 只上傳新版 JAR，不將本機 `.env` 覆蓋到 AWS。
+
+### 第二段：AWS SSH 備份、更新與驗證
+
+1. 在 D&D 正確目錄執行，以 `set -e` 等方式確保任一步驟失敗就停止後續更新；建議包在子 Shell，避免失敗直接關閉使用者的 SSH 工作階段。
+2. 先驗證 `app.jar.new` 的 SHA256 與本次本機值一致。
+3. 建立有時間戳的備份目錄，備份現有 `app.jar`、AWS `.env` 及資料庫；備份目錄和含密碼的檔案限制讀取權限。
+4. 從 AWS `.env` 讀取 `DB_USERNAME`，資料庫密碼以 `mysqldump --password` 互動輸入，不印出、不寫進指令或對話，也不直接將 `.env` 當 Shell 程式執行。
+5. `mysqldump` 使用既有 MySQL 連線與 `--single-transaction --no-tablespaces`；確認命令成功且備份非空後，才將 `app.jar.new` 替換為 `app.jar`。
+6. 重啟 `my-project-spring-boot.service`，以有限次數的 `curl` 輪詢等待網站回應，並確認服務為 `active`。失敗時顯示 `journalctl` 日誌，不能只因 restart 指令成功就宣稱部署成功。
+7. 新 migration 交由正常 Flyway 啟動流程套用；不手動改歷史 SQL、關閉驗證或執行 repair。回報這次可能套用的版本與上線後要驗收的功能。
+8. 最後提示使用者 Ctrl＋F5 更新前端，並區分「服務啟動／HTTP 回應正常」與「功能及真實寄信、金流已驗收」。
+
+### 目前已知部署位置
+
+以下為已確認過的既有設定，提供指令前應檢查是否有更新資訊；不套用學習用舊專案的 Docker／GitHub Actions 部署方式。
+
+| 項目 | 設定 |
+| --- | --- |
+| 本機專案 | `D:\Java26\my_project_spring_boot_261021` |
+| 本機 JAR | `target\my_project_spring_boot_261021-0.0.1-SNAPSHOT.jar` |
+| SSH key 路徑 | `C:\test\test46`（只引用路徑，不讀取或輸出私鑰內容） |
+| SSH 主機 | `ubuntu@43.213.4.235` |
+| AWS 工作目錄 | `/home/ubuntu/my_project_spring_boot_261021` |
+| 暫存／正式 JAR | `app.jar.new`／`app.jar` |
+| systemd 服務 | `my-project-spring-boot.service` |
+| AWS MySQL | `127.0.0.1:3307`，資料庫 `dnd_event_prod` |
+| 啟動檢查網址 | `http://127.0.0.1:8081/events.html` |
+
+本節不保存固定的 JAR 校驗碼、資料庫密碼或任何金鑰內容。不得將「使用者要指令」解讀為授權自動部署。
+
 ## 教學與修改說明
 
 不需要每次從最基礎的 Java 重新教起。請假設開發者已具備基本 Java、Spring Boot、JPA 概念，但對複雜的 Service 邏輯、方法呼叫、回傳型別及 Exception 處理仍需要練習。

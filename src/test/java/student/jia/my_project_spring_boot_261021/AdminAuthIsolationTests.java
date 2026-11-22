@@ -228,6 +228,26 @@ class AdminAuthIsolationTests {
         mvc.perform(get("/admin/probe").session(session)).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void rosterRequiresAdminSessionAndCancellationRequiresCsrf() throws Exception {
+        mvc.perform(get("/admin/events/11/registrations")).andExpect(status().isUnauthorized());
+        MvcResult signedIn = login();
+        MockHttpSession session = session(signedIn);
+        mvc.perform(get("/admin/events/11/registrations").session(session)).andExpect(status().isOk());
+        mvc.perform(post("/admin/events/11/registrations/20/cancel").session(session)
+                .contentType("application/json").content("{\"reason\":\"事故\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/events/11/registrations/20/cancel").session(session)
+                .header("X-Admin-CSRF", csrf(signedIn))
+                .contentType("application/json").content("{\"reason\":\"  \"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/admin/events/11/registrations/20/cancel").session(session)
+                .header("X-Admin-CSRF", csrf(signedIn))
+                .contentType("application/json").content("{\"reason\":\"事故\"}"))
+                .andExpect(status().isOk());
+        verify(context.getBean(AdminRegistrationService.class)).cancel(7L, 11L, 20L, "事故");
+    }
+
     @RestController
     static class Probe {
         @RequestMapping({"/admin/probe", "/admin/members", "/admin/events/1/payments", "/admin-events.html"})
@@ -236,9 +256,10 @@ class AdminAuthIsolationTests {
 
     @Configuration
     @EnableWebMvc
-    @Import({WebConfig.class, AdminAuthController.class, MemberController.class, Probe.class,
+    @Import({student.jia.my_project_spring_boot_261021.controller.AdminRegistrationController.class, WebConfig.class, AdminAuthController.class, MemberController.class, Probe.class,
         student.jia.my_project_spring_boot_261021.exception.GlobalExceptionHandler.class})
     static class TestConfig {
+        @Bean AdminRegistrationService roster() { return mock(AdminRegistrationService.class); }
         @Bean MemberRepository members() { return mock(MemberRepository.class); }
         @Bean PasswordEncoder passwords() { return mock(PasswordEncoder.class); }
         @Bean Clock clock() { return mock(Clock.class); }

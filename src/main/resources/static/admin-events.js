@@ -115,11 +115,16 @@ async function loadList(page = currentPage, filters = activeFilters) {
     const statuses = { OPEN: "開放中", CLOSED: "已關閉", CANCELLED: "已取消" };
     for (const event of events) {
         const card = document.createElement("article");
+        card.className = "admin-event-card";
         text(card, "h3", event.title);
         text(card, "p", "活動狀態：" + (statuses[event.status] || event.status));
         text(card, "p", "開始時間：" + DndTime.format(event.startAt));
         text(card, "p", "地點：" + event.location);
-        text(card, "p", "已報名：" + event.registeredCount + " 人；剩餘名額：" + event.remainingSlots + " / " + event.capacity);
+        const slots = text(card, "button", "已報名：" + event.registeredCount + " 人；剩餘名額：" + event.remainingSlots + " / " + event.capacity);
+        slots.type = "button";
+        slots.className = "admin-slot-link";
+        slots.setAttribute("aria-label", event.title + "：查看報名名單與名額");
+        slots.addEventListener("click", () => openRoster(event.id, slots));
         const edit = document.createElement("button");
         edit.type = "button";
         edit.textContent = canEdit(event) ? "修改活動" : "查看活動資料";
@@ -128,6 +133,9 @@ async function loadList(page = currentPage, filters = activeFilters) {
         const actions = document.createElement("div");
         actions.className = "actions";
         actions.append(edit);
+        const manage = text(actions, "button", "管理報名");
+        manage.type = "button";
+        manage.addEventListener("click", () => openRoster(event.id, manage));
         const hasEnded = Date.now() >= Date.parse(event.endAt + "+08:00");
         if (event.status === "OPEN" && hasEnded) {
             text(card, "p", "活動已結束，已移出公開列表。");
@@ -143,6 +151,7 @@ async function loadList(page = currentPage, filters = activeFilters) {
             const cancel = document.createElement("button");
             cancel.type = "button";
             cancel.textContent = "取消整場活動";
+            cancel.className = "admin-danger-outline";
             cancel.addEventListener("click", () => {
                 if (busy || cancelDialog.open) return;
                 eventToCancel = event;
@@ -311,6 +320,7 @@ newEvent.addEventListener("click", () => {
     if (!busy) { openForm(null, newEvent); setBusy(false); }
 });
 document.getElementById("close-form").addEventListener("click", () => { if (!busy) dialog.close(); });
+document.getElementById("event-close-top").addEventListener("click", () => { if (!busy) dialog.close(); });
 dialog.addEventListener("cancel", event => {
     if (busy) event.preventDefault();
 });
@@ -509,3 +519,179 @@ previousPage.addEventListener("click", () => changePage(currentPage - 1));
 nextPage.addEventListener("click", () => changePage(currentPage + 1));
 retry.addEventListener("click", initialize);
 initialize();
+
+// 名單與個別取消共用既有後台 Session / CSRF request。
+const rosterDialog = document.getElementById("roster-dialog");
+const rosterMessage = document.getElementById("roster-message");
+const rosterCancelForm = document.getElementById("roster-cancel-form");
+let rosterEventId = null, rosterTargetId = null, rosterBusy = false, rosterOpener, rosterSelectedRow;
+function clearRosterSelection() {
+    if (rosterSelectedRow) rosterSelectedRow.classList.remove("roster-selected");
+    rosterSelectedRow = null;
+}
+const rosterStatusLabels = { REGISTERED: "已報名", CANCELLED: "已取消", PENDING_PAYMENT: "待付款" };
+const rosterPaymentLabels = { INIT: "待付款", PENDING: "待付款", PAID: "已付款", CANCELLED: "已取消",
+    FAILED: "付款失敗", REFUND_PENDING: "待全額退款", REFUNDED: "已退款", REVIEW_REQUIRED: "已收款，待人工核對" };
+function setRosterBusy(value) {
+    rosterBusy = value;
+    rosterDialog.querySelectorAll("button, textarea").forEach(input => { input.disabled = value; });
+}
+async function renderRoster() {
+    const data = await checked("/admin/events/" + rosterEventId + "/registrations");
+    document.getElementById("roster-title").textContent = "管理報名";
+    document.getElementById("roster-event-name").textContent = data.title;
+    document.getElementById("roster-summary").textContent = "已報名：" + data.registeredCount + " 人；待付款保留：" +
+        data.heldCount + " 人；剩餘名額：" + data.remainingSlots + " / " + data.capacity;
+    const rows = document.getElementById("roster-list");
+    rows.replaceChildren();
+    if (!data.entries.length) {
+        const empty = text(rows, "tr", "");
+        text(empty, "td", "目前沒有報名紀錄。").colSpan = 5;
+    }
+    for (const entry of data.entries) {
+        const row = document.createElement("tr");
+        text(row, "td", entry.name + "／" + entry.account);
+        text(row, "td", DndTime.format(entry.registeredAt, "—"));
+        let status = rosterStatusLabels[entry.status] || entry.status;
+        if (entry.status === "PENDING_PAYMENT") {
+            status += Date.now() >= Date.parse(entry.paymentExpiresAt + "+08:00") ? "（保留已逾期）" : "（保留中）";
+        }
+        text(row, "td", status);
+        text(row, "td", entry.paymentStatus ? (rosterPaymentLabels[entry.paymentStatus] || entry.paymentStatus) : "無付款訂單（免費報名）");
+        const action = text(row, "td", DndTime.format(entry.cancelledAt, "—"));
+        if (entry.canCancel) {
+            const cancel = text(action, "button", "取消報名並釋出名額");
+            cancel.type = "button";
+            cancel.className = "admin-danger-outline";
+            cancel.addEventListener("click", () => {
+                if (rosterBusy) return;
+                clearRosterSelection();
+                rosterSelectedRow = row;
+                row.classList.add("roster-selected");
+                rosterTargetId = entry.id;
+                rosterCancelForm.hidden = false;
+                rosterCancelForm.reset();
+                DndCounters.refresh(rosterCancelForm);
+                rosterMessage.textContent = "";
+                document.getElementById("roster-target").textContent = "確定取消「" + entry.name + "／" + entry.account + "」的報名？已付款者將列為待全額退款。";
+                document.getElementById("roster-reason").focus();
+            });
+        }
+        rows.append(row);
+    }
+    const history = document.getElementById("roster-history");
+    history.replaceChildren();
+    if (!data.cancellations.length) {
+        const empty = text(history, "tr", "");
+        text(empty, "td", "尚無管理員個別取消紀錄。").colSpan = 7;
+    }
+    const mailStatuses = new Map((data.notifications || []).map(item => [item.cancellationId, item]));
+    const mailLabels = { PENDING: "Email 待寄送", SENDING: "Email 處理中（若長時間未更新請人工確認）", SENT: "郵件服務已接受", FAILED: "無收件信箱，未寄出", UNKNOWN: "寄送結果待人工確認" };
+    const lineLabels = { PENDING: "待推播", SENDING: "處理中（長時間未更新請人工確認）", SENT: "LINE 服務已接受",
+        NOT_BOUND: "未綁定 LINE", NOT_CONFIGURED: "LINE 服務未設定", RECIPIENT_ERROR: "無法確認 LINE 收件人",
+        REJECTED: "LINE 拒絕推播", UNKNOWN: "推播結果待人工確認" };
+    for (const record of data.cancellations) {
+        const row = document.createElement("tr");
+        text(row, "td", DndTime.format(record.cancelledAt, "—"));
+        text(row, "td", "#" + record.memberId);
+        text(row, "td", "#" + record.operatorId);
+        text(row, "td", DndTime.format(record.registeredAt, "—"));
+        text(row, "td", record.reason);
+        const notification = mailStatuses.get(record.id);
+        text(row, "td", mailLabels[notification?.status] || "無通知紀錄");
+        text(row, "td", lineLabels[notification?.lineStatus] || "舊紀錄（未啟用 LINE 通知）");
+        history.append(row);
+    }
+}
+async function openRoster(eventId, opener) {
+    if (busy || rosterDialog.open) return;
+    clearRosterSelection();
+    rosterEventId = eventId;
+    rosterOpener = opener;
+    rosterCancelForm.hidden = true;
+    rosterTargetId = null;
+    document.getElementById("roster-list").replaceChildren();
+    document.getElementById("roster-history").replaceChildren();
+    document.getElementById("roster-summary").textContent = "";
+    document.getElementById("roster-event-name").textContent = "";
+    document.getElementById("roster-title").textContent = "管理報名";
+    rosterMessage.textContent = "讀取名單中……";
+    rosterDialog.showModal();
+    setRosterBusy(true);
+    try { await renderRoster(); rosterMessage.textContent = ""; }
+    catch (error) { rosterMessage.textContent = error.message; }
+    finally { setRosterBusy(false); }
+}
+const rosterFinalDialog = document.getElementById("roster-final-dialog");
+let resolveRosterConfirmation;
+function askRosterConfirmation(reason) {
+    document.getElementById("roster-final-description").textContent =
+        "活動：「" + document.getElementById("roster-event-name").textContent + "」\n" +
+        document.getElementById("roster-target").textContent;
+    document.getElementById("roster-final-reason").textContent = reason;
+    rosterFinalDialog.returnValue = "";
+    return new Promise(resolve => {
+        resolveRosterConfirmation = resolve;
+        rosterFinalDialog.showModal();
+        document.getElementById("roster-final-keep").focus();
+    });
+}
+document.getElementById("roster-final-keep").addEventListener("click", () => rosterFinalDialog.close("keep"));
+document.getElementById("roster-final-confirm").addEventListener("click", () => rosterFinalDialog.close("confirm"));
+rosterFinalDialog.addEventListener("close", () => {
+    if (resolveRosterConfirmation) {
+        const resolve = resolveRosterConfirmation;
+        resolveRosterConfirmation = null;
+        resolve(rosterFinalDialog.returnValue === "confirm");
+    }
+});
+rosterCancelForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (rosterBusy || rosterTargetId === null) return;
+    const reason = document.getElementById("roster-reason").value.trim();
+    if (!reason) { rosterMessage.textContent = "請填寫取消原因。"; return; }
+    setRosterBusy(true);
+    let completed = false;
+    try {
+        if (!await askRosterConfirmation(reason)) return;
+        const result = await checked("/admin/events/" + rosterEventId + "/registrations/" + rosterTargetId + "/cancel", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason })
+        });
+        completed = true;
+        clearRosterSelection();
+        rosterTargetId = null;
+        rosterCancelForm.hidden = true;
+        rosterMessage.textContent = result.message;
+        await renderRoster();
+        await loadList();
+    } catch (error) {
+        rosterMessage.textContent = (completed ? "取消已完成，但畫面更新失敗，請重新整理名單。" : "取消未確認成功，請先重新整理名單確認狀態。") + " " + error.message;
+    } finally {
+        setRosterBusy(false);
+        if (!rosterCancelForm.hidden) document.getElementById("roster-reason").focus();
+    }
+});
+document.getElementById("roster-keep").addEventListener("click", () => {
+    clearRosterSelection();
+    rosterTargetId = null;
+    rosterCancelForm.hidden = true;
+    document.getElementById("roster-refresh").focus();
+});
+document.getElementById("roster-close").addEventListener("click", () => rosterDialog.close());
+document.getElementById("roster-close-top").addEventListener("click", () => { if (!rosterBusy) rosterDialog.close(); });
+rosterDialog.addEventListener("cancel", event => { if (rosterBusy) event.preventDefault(); });
+rosterDialog.addEventListener("close", () => {
+    clearRosterSelection();
+    if (rosterOpener?.isConnected) rosterOpener.focus();
+    else document.getElementById("new-event").focus();
+});
+document.getElementById("roster-refresh").addEventListener("click", async () => {
+    if (rosterBusy) return;
+    setRosterBusy(true);
+    clearRosterSelection();
+    rosterTargetId = null;
+    rosterCancelForm.hidden = true;
+    try { await renderRoster(); await loadList(); rosterMessage.textContent = "名單已更新。"; }
+    catch (error) { rosterMessage.textContent = error.message; }
+    finally { setRosterBusy(false); }
+});
