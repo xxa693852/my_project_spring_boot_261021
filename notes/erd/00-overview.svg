@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1840" height="1210" viewBox="0 0 1840 1210">
+<style>text{font-family:"Microsoft JhengHei","Noto Sans CJK TC",Arial,sans-serif} .en{font-family:Consolas,monospace}</style>
+<rect width="1840" height="1210" fill="#f2f5f3"/>
+<text x="40" y="48" font-size="29" font-weight="700" fill="#173d32">D&amp;D 活動報名平台｜ER 關聯總覽</text>
+<text x="40" y="80" font-size="16" fill="#52635d">總覽只列鍵值；下方三張分區詳圖附完整英文／中文欄位。無實體外鍵的資料表另外列於 HTML。</text>
+<path d="M390 240 H510" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="402" y="262" font-size="15" fill="#254c3d">1</text>
+<text x="460" y="262" font-size="15" fill="#254c3d">0..N</text>
+<text x="423" y="220" font-size="14" font-weight="600" fill="#52635d">報名</text>
+<path d="M215 346 V480" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="228" y="370" font-size="15" fill="#254c3d">1</text>
+<text x="228" y="466" font-size="15" fill="#254c3d">0..N</text>
+<text x="230" y="415" font-size="14" font-weight="600" fill="#52635d">建立活動</text>
+<path d="M390 570 H450 V320 H510" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="402" y="595" font-size="15" fill="#254c3d">1</text>
+<text x="464" y="341" font-size="15" fill="#254c3d">0..N</text>
+<text x="402" y="550" font-size="14" font-weight="600" fill="#52635d">活動報名</text>
+<path d="M860 240 H980" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="872" y="262" font-size="15" fill="#254c3d">1</text>
+<text x="930" y="262" font-size="15" fill="#254c3d">0..N</text>
+<text x="884" y="220" font-size="14" font-weight="600" fill="#52635d">付款嘗試</text>
+<path d="M1330 240 H1450" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="1342" y="262" font-size="15" fill="#254c3d">1</text>
+<text x="1400" y="262" font-size="15" fill="#254c3d">0..N</text>
+<text x="1354" y="220" font-size="14" font-weight="600" fill="#52635d">退款通知</text>
+<path d="M685 318 V530" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="698" y="344" font-size="15" fill="#254c3d">1</text>
+<text x="698" y="515" font-size="15" fill="#254c3d">0..N</text>
+<text x="700" y="455" font-size="14" font-weight="600" fill="#52635d">取消歷程</text>
+<path d="M600 764 V890 H215 V960" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="613" y="789" font-size="15" fill="#254c3d">1</text>
+<text x="228" y="945" font-size="15" fill="#254c3d">0..1</text>
+<text x="260" y="875" font-size="14" font-weight="600" fill="#52635d">Email</text>
+<path d="M770 764 V890 H1155 V960" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="783" y="789" font-size="15" fill="#254c3d">1</text>
+<text x="1168" y="945" font-size="15" fill="#254c3d">0..1</text>
+<text x="1010" y="875" font-size="14" font-weight="600" fill="#52635d">LINE</text>
+<rect x="40" y="140" width="350" height="206" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M52 140 H378 Q390 140 390 152 V216 H40 V152 Q40 140 52 140" fill="#1e5949"/>
+<text class="en" x="56" y="169" font-size="16" fill="white" font-weight="700">members</text>
+<text x="56" y="198" font-size="15" fill="#eff6f2">會員資料</text>
+<rect x="41" y="222" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="52" y="241" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="110" y="241" font-size="13" fill="#263a32">id</text>
+<text class="en" x="52" y="269" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="110" y="269" font-size="13" fill="#263a32">account</text>
+<rect x="41" y="278" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="52" y="297" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="110" y="297" font-size="13" fill="#263a32">email</text>
+<text class="en" x="52" y="325" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="110" y="325" font-size="13" fill="#263a32">notification_line_user_id</text>
+<rect x="40" y="480" width="350" height="150" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M52 480 H378 Q390 480 390 492 V556 H40 V492 Q40 480 52 480" fill="#1e5949"/>
+<text class="en" x="56" y="509" font-size="16" fill="white" font-weight="700">events</text>
+<text x="56" y="538" font-size="15" fill="#eff6f2">活動資料</text>
+<rect x="41" y="562" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="52" y="581" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="110" y="581" font-size="13" fill="#263a32">id</text>
+<text class="en" x="52" y="609" font-size="11" fill="#1e5949">FK</text>
+<text class="en" x="110" y="609" font-size="13" fill="#263a32">member_id</text>
+<rect x="510" y="140" width="350" height="178" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M522 140 H848 Q860 140 860 152 V216 H510 V152 Q510 140 522 140" fill="#1e5949"/>
+<text class="en" x="526" y="169" font-size="16" fill="white" font-weight="700">registrations</text>
+<text x="526" y="198" font-size="15" fill="#eff6f2">活動報名紀錄</text>
+<rect x="511" y="222" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="522" y="241" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="580" y="241" font-size="13" fill="#263a32">id</text>
+<text class="en" x="522" y="269" font-size="11" fill="#1e5949">FK</text>
+<text class="en" x="580" y="269" font-size="13" fill="#263a32">member_id</text>
+<rect x="511" y="278" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="522" y="297" font-size="11" fill="#1e5949">FK</text>
+<text class="en" x="580" y="297" font-size="13" fill="#263a32">event_id</text>
+<rect x="980" y="140" width="350" height="178" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M992 140 H1318 Q1330 140 1330 152 V216 H980 V152 Q980 140 992 140" fill="#1e5949"/>
+<text class="en" x="996" y="169" font-size="16" fill="white" font-weight="700">payments</text>
+<text x="996" y="198" font-size="15" fill="#eff6f2">付款交易紀錄</text>
+<rect x="981" y="222" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="992" y="241" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="1050" y="241" font-size="13" fill="#263a32">id</text>
+<text class="en" x="992" y="269" font-size="11" fill="#1e5949">FK</text>
+<text class="en" x="1050" y="269" font-size="13" fill="#263a32">registration_id</text>
+<rect x="981" y="278" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="992" y="297" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="1050" y="297" font-size="13" fill="#263a32">merchant_order_no</text>
+<rect x="1450" y="140" width="350" height="150" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M1462 140 H1788 Q1800 140 1800 152 V216 H1450 V152 Q1450 140 1462 140" fill="#1e5949"/>
+<text class="en" x="1466" y="169" font-size="16" fill="white" font-weight="700">refund_notifications</text>
+<text x="1466" y="198" font-size="15" fill="#eff6f2">退款通知佇列</text>
+<rect x="1451" y="222" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="1462" y="241" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="1520" y="241" font-size="13" fill="#263a32">id</text>
+<text class="en" x="1462" y="269" font-size="11" fill="#1e5949">FK</text>
+<text class="en" x="1520" y="269" font-size="13" fill="#263a32">payment_id</text>
+<rect x="510" y="530" width="350" height="234" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M522 530 H848 Q860 530 860 542 V606 H510 V542 Q510 530 522 530" fill="#79532d"/>
+<text class="en" x="526" y="559" font-size="16" fill="white" font-weight="700">registration_cancellations</text>
+<text x="526" y="588" font-size="15" fill="#eff6f2">管理員個別取消報名歷程</text>
+<rect x="511" y="612" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="522" y="631" font-size="11" fill="#79532d">PK</text>
+<text class="en" x="580" y="631" font-size="13" fill="#263a32">id</text>
+<text class="en" x="522" y="659" font-size="11" fill="#79532d">FK</text>
+<text class="en" x="580" y="659" font-size="13" fill="#263a32">registration_id</text>
+<rect x="511" y="668" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="522" y="687" font-size="11" fill="#79532d">FK</text>
+<text class="en" x="580" y="687" font-size="13" fill="#263a32">event_id</text>
+<text class="en" x="522" y="715" font-size="11" fill="#79532d">FK</text>
+<text class="en" x="580" y="715" font-size="13" fill="#263a32">member_id</text>
+<rect x="511" y="724" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="522" y="743" font-size="11" fill="#79532d">FK</text>
+<text class="en" x="580" y="743" font-size="13" fill="#263a32">operator_id</text>
+<rect x="40" y="960" width="350" height="150" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M52 960 H378 Q390 960 390 972 V1036 H40 V972 Q40 960 52 960" fill="#79532d"/>
+<text class="en" x="56" y="989" font-size="16" fill="white" font-weight="700">registration_cancellation_emails</text>
+<text x="56" y="1018" font-size="15" fill="#eff6f2">個別取消報名 Email 通知</text>
+<rect x="41" y="1042" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="52" y="1061" font-size="11" fill="#79532d">PK</text>
+<text class="en" x="110" y="1061" font-size="13" fill="#263a32">id</text>
+<text class="en" x="52" y="1089" font-size="11" fill="#79532d">FK/UQ</text>
+<text class="en" x="110" y="1089" font-size="13" fill="#263a32">cancellation_id</text>
+<rect x="980" y="960" width="350" height="150" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M992 960 H1318 Q1330 960 1330 972 V1036 H980 V972 Q980 960 992 960" fill="#79532d"/>
+<text class="en" x="996" y="989" font-size="16" fill="white" font-weight="700">registration_cancellation_lines</text>
+<text x="996" y="1018" font-size="15" fill="#eff6f2">個別取消報名 LINE 通知</text>
+<rect x="981" y="1042" width="348" height="28" fill="#f3f7f4"/>
+<text class="en" x="992" y="1061" font-size="11" fill="#79532d">PK</text>
+<text class="en" x="1050" y="1061" font-size="13" fill="#263a32">id</text>
+<text class="en" x="992" y="1089" font-size="11" fill="#79532d">FK/UQ</text>
+<text class="en" x="1050" y="1089" font-size="13" fill="#263a32">cancellation_id</text>
+<text x="40" y="1186" font-size="14" fill="#53675d">PK 主鍵　FK 資料庫外鍵　UQ 單欄唯一｜1：一筆；0..N：零至多筆；0..1：零或一筆｜2026-11-23・V20 結構</text>
+</svg>

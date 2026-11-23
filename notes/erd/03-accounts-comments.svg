@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2160" height="1390" viewBox="0 0 2160 1390">
+<style>text{font-family:"Microsoft JhengHei","Noto Sans CJK TC",Arial,sans-serif} .en{font-family:Consolas,monospace}</style>
+<rect width="2160" height="1390" fill="#f2f5f3"/>
+<text x="40" y="48" font-size="29" font-weight="700" fill="#173d32">03　會員安全、停權與留言</text>
+<text x="40" y="80" font-size="16" fill="#52635d">actor_member_id 是執行停權操作的管理員；event_comments.member_id 是留言作者。</text>
+<path d="M760 300 H680" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="734" y="325" font-size="15" fill="#254c3d">1</text>
+<text x="682" y="325" font-size="15" fill="#254c3d">0..N</text>
+<text x="235" y="125" font-size="14" font-weight="600" fill="#52635d">停權對象／管理員（兩條外鍵）</text>
+<path d="M1400 300 H1480" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="1407" y="326" font-size="15" fill="#254c3d">1</text>
+<text x="1430" y="326" font-size="15" fill="#254c3d">0..N</text>
+<text x="1408" y="279" font-size="14" font-weight="600" fill="#52635d">重設密碼</text>
+<path d="M1080 678 V980" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="1094" y="705" font-size="15" fill="#254c3d">1</text>
+<text x="1094" y="963" font-size="15" fill="#254c3d">0..N</text>
+<text x="1094" y="820" font-size="14" font-weight="600" fill="#52635d">發表留言</text>
+<path d="M1480 1080 H1400" fill="none" stroke="#7b8f87" stroke-width="2.4"/>
+<text x="1454" y="1104" font-size="15" fill="#254c3d">1</text>
+<text x="1406" y="1104" font-size="15" fill="#254c3d">0..N</text>
+<text x="1407" y="1060" font-size="14" font-weight="600" fill="#52635d">活動留言</text>
+<rect x="40" y="140" width="640" height="464" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M52 140 H668 Q680 140 680 152 V216 H40 V152 Q40 140 52 140" fill="#345e83"/>
+<text class="en" x="56" y="169" font-size="20" fill="white" font-weight="700">member_suspension_actions</text>
+<text x="56" y="198" font-size="18" fill="#eff6f2">會員停權操作紀錄</text>
+<rect x="41" y="222" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="52" y="241" font-size="11" fill="#345e83">PK</text>
+<text class="en" x="125" y="245" font-size="15" fill="#263a32">id</text>
+<text x="385" y="245" font-size="14" fill="#485e53">主鍵編號</text>
+<text class="en" x="52" y="278" font-size="11" fill="#345e83">FK</text>
+<text class="en" x="125" y="282" font-size="15" fill="#263a32">member_id</text>
+<text x="385" y="282" font-size="14" fill="#485e53">會員編號</text>
+<rect x="41" y="296" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="52" y="315" font-size="11" fill="#345e83">FK</text>
+<text class="en" x="125" y="319" font-size="15" fill="#263a32">actor_member_id</text>
+<text x="385" y="319" font-size="14" fill="#485e53">執行操作的管理員編號</text>
+<text class="en" x="52" y="352" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="356" font-size="15" fill="#263a32">action</text>
+<text x="385" y="356" font-size="14" fill="#485e53">停權或解除停權的操作類型</text>
+<rect x="41" y="370" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="52" y="389" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="393" font-size="15" fill="#263a32">reason</text>
+<text x="385" y="393" font-size="14" fill="#485e53">執行停權或解除停權的原因</text>
+<text class="en" x="52" y="426" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="430" font-size="15" fill="#263a32">acted_at</text>
+<text x="385" y="430" font-size="14" fill="#485e53">操作執行時間</text>
+<rect x="41" y="444" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="52" y="463" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="467" font-size="15" fill="#263a32">suspended_until</text>
+<text x="385" y="467" font-size="14" fill="#485e53">停權結束時間</text>
+<text class="en" x="52" y="500" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="504" font-size="15" fill="#263a32">notification_status</text>
+<text x="385" y="504" font-size="14" fill="#485e53">停權操作通知的發送狀態</text>
+<rect x="41" y="518" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="52" y="537" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="541" font-size="15" fill="#263a32">notification_channel</text>
+<text x="385" y="541" font-size="14" fill="#485e53">停權操作通知的發送管道</text>
+<text class="en" x="52" y="574" font-size="11" fill="#345e83"></text>
+<text class="en" x="125" y="578" font-size="15" fill="#263a32">notification_result_code</text>
+<text x="385" y="578" font-size="14" fill="#485e53">停權操作通知的發送結果代碼</text>
+<rect x="760" y="140" width="640" height="538" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M772 140 H1388 Q1400 140 1400 152 V216 H760 V152 Q760 140 772 140" fill="#1e5949"/>
+<text class="en" x="776" y="169" font-size="20" fill="white" font-weight="700">members</text>
+<text x="776" y="198" font-size="18" fill="#eff6f2">會員資料</text>
+<rect x="761" y="222" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="241" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="845" y="245" font-size="15" fill="#263a32">id</text>
+<text x="1105" y="245" font-size="14" fill="#485e53">主鍵編號</text>
+<text class="en" x="772" y="278" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="845" y="282" font-size="15" fill="#263a32">account</text>
+<text x="1105" y="282" font-size="14" fill="#485e53">登入帳號</text>
+<rect x="761" y="296" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="315" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="319" font-size="15" fill="#263a32">password_hash</text>
+<text x="1105" y="319" font-size="14" fill="#485e53">登入密碼雜湊值</text>
+<text class="en" x="772" y="352" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="356" font-size="15" fill="#263a32">name</text>
+<text x="1105" y="356" font-size="14" fill="#485e53">會員姓名</text>
+<rect x="761" y="370" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="389" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="845" y="393" font-size="15" fill="#263a32">email</text>
+<text x="1105" y="393" font-size="14" fill="#485e53">電子郵件地址</text>
+<text class="en" x="772" y="426" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="430" font-size="15" fill="#263a32">role</text>
+<text x="1105" y="430" font-size="14" fill="#485e53">會員角色</text>
+<rect x="761" y="444" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="463" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="467" font-size="15" fill="#263a32">status</text>
+<text x="1105" y="467" font-size="14" fill="#485e53">狀態（詳見欄位對照）</text>
+<text class="en" x="772" y="500" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="504" font-size="15" fill="#263a32">created_at</text>
+<text x="1105" y="504" font-size="14" fill="#485e53">建立時間</text>
+<rect x="761" y="518" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="537" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="541" font-size="15" fill="#263a32">updated_at</text>
+<text x="1105" y="541" font-size="14" fill="#485e53">最後更新時間</text>
+<text class="en" x="772" y="574" font-size="11" fill="#1e5949">UQ</text>
+<text class="en" x="845" y="578" font-size="15" fill="#263a32">notification_line_user_id</text>
+<text x="1105" y="578" font-size="14" fill="#485e53">綁定通知用的 LINE 使用者識別碼</text>
+<rect x="761" y="592" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="611" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="615" font-size="15" fill="#263a32">suspended_at</text>
+<text x="1105" y="615" font-size="14" fill="#485e53">停權開始時間</text>
+<text class="en" x="772" y="648" font-size="11" fill="#1e5949"></text>
+<text class="en" x="845" y="652" font-size="15" fill="#263a32">suspended_until</text>
+<text x="1105" y="652" font-size="14" fill="#485e53">停權結束時間</text>
+<rect x="1480" y="140" width="640" height="390" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M1492 140 H2108 Q2120 140 2120 152 V216 H1480 V152 Q1480 140 1492 140" fill="#345e83"/>
+<text class="en" x="1496" y="169" font-size="20" fill="white" font-weight="700">password_reset_tokens</text>
+<text x="1496" y="198" font-size="18" fill="#eff6f2">密碼重設權杖</text>
+<rect x="1481" y="222" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="1492" y="241" font-size="11" fill="#345e83">PK</text>
+<text class="en" x="1565" y="245" font-size="15" fill="#263a32">id</text>
+<text x="1825" y="245" font-size="14" fill="#485e53">主鍵編號</text>
+<text class="en" x="1492" y="278" font-size="11" fill="#345e83">FK</text>
+<text class="en" x="1565" y="282" font-size="15" fill="#263a32">member_id</text>
+<text x="1825" y="282" font-size="14" fill="#485e53">會員編號</text>
+<rect x="1481" y="296" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="1492" y="315" font-size="11" fill="#345e83">UQ</text>
+<text class="en" x="1565" y="319" font-size="15" fill="#263a32">token_hash</text>
+<text x="1825" y="319" font-size="14" fill="#485e53">一次性密碼重設權杖的雜湊值</text>
+<text class="en" x="1492" y="352" font-size="11" fill="#345e83"></text>
+<text class="en" x="1565" y="356" font-size="15" fill="#263a32">expires_at</text>
+<text x="1825" y="356" font-size="14" fill="#485e53">密碼重設權杖到期時間</text>
+<rect x="1481" y="370" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="1492" y="389" font-size="11" fill="#345e83"></text>
+<text class="en" x="1565" y="393" font-size="15" fill="#263a32">used</text>
+<text x="1825" y="393" font-size="14" fill="#485e53">是否已使用</text>
+<text class="en" x="1492" y="426" font-size="11" fill="#345e83"></text>
+<text class="en" x="1565" y="430" font-size="15" fill="#263a32">created_at</text>
+<text x="1825" y="430" font-size="14" fill="#485e53">建立時間</text>
+<rect x="1481" y="444" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="1492" y="463" font-size="11" fill="#345e83"></text>
+<text class="en" x="1565" y="467" font-size="15" fill="#263a32">updated_at</text>
+<text x="1825" y="467" font-size="14" fill="#485e53">最後更新時間</text>
+<text class="en" x="1492" y="500" font-size="11" fill="#345e83"></text>
+<text class="en" x="1565" y="504" font-size="15" fill="#263a32">deleted_at</text>
+<text x="1825" y="504" font-size="14" fill="#485e53">軟刪除時間</text>
+<rect x="760" y="980" width="640" height="316" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M772 980 H1388 Q1400 980 1400 992 V1056 H760 V992 Q760 980 772 980" fill="#345e83"/>
+<text class="en" x="776" y="1009" font-size="20" fill="white" font-weight="700">event_comments</text>
+<text x="776" y="1038" font-size="18" fill="#eff6f2">活動留言</text>
+<rect x="761" y="1062" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="1081" font-size="11" fill="#345e83">PK</text>
+<text class="en" x="845" y="1085" font-size="15" fill="#263a32">id</text>
+<text x="1105" y="1085" font-size="14" fill="#485e53">主鍵編號</text>
+<text class="en" x="772" y="1118" font-size="11" fill="#345e83">FK</text>
+<text class="en" x="845" y="1122" font-size="15" fill="#263a32">event_id</text>
+<text x="1105" y="1122" font-size="14" fill="#485e53">活動編號</text>
+<rect x="761" y="1136" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="1155" font-size="11" fill="#345e83">FK</text>
+<text class="en" x="845" y="1159" font-size="15" fill="#263a32">member_id</text>
+<text x="1105" y="1159" font-size="14" fill="#485e53">留言作者的會員編號</text>
+<text class="en" x="772" y="1192" font-size="11" fill="#345e83"></text>
+<text class="en" x="845" y="1196" font-size="15" fill="#263a32">body</text>
+<text x="1105" y="1196" font-size="14" fill="#485e53">留言內容</text>
+<rect x="761" y="1210" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="772" y="1229" font-size="11" fill="#345e83"></text>
+<text class="en" x="845" y="1233" font-size="15" fill="#263a32">created_at</text>
+<text x="1105" y="1233" font-size="14" fill="#485e53">建立時間</text>
+<text class="en" x="772" y="1266" font-size="11" fill="#345e83"></text>
+<text class="en" x="845" y="1270" font-size="15" fill="#263a32">hidden_reason</text>
+<text x="1105" y="1270" font-size="14" fill="#485e53">留言被隱藏的原因</text>
+<rect x="1480" y="980" width="640" height="131" rx="12" fill="white" stroke="#ced9d3"/>
+<path d="M1492 980 H2108 Q2120 980 2120 992 V1056 H1480 V992 Q1480 980 1492 980" fill="#1e5949"/>
+<text class="en" x="1496" y="1009" font-size="20" fill="white" font-weight="700">events</text>
+<text x="1496" y="1038" font-size="18" fill="#eff6f2">活動資料（關聯參照）</text>
+<rect x="1481" y="1062" width="638" height="37" fill="#f3f7f4"/>
+<text class="en" x="1492" y="1081" font-size="11" fill="#1e5949">PK</text>
+<text class="en" x="1565" y="1085" font-size="15" fill="#263a32">id</text>
+<text x="1825" y="1085" font-size="14" fill="#485e53">主鍵編號</text>
+<text x="40" y="1366" font-size="14" fill="#53675d">PK 主鍵　FK 資料庫外鍵　UQ 單欄唯一｜1：一筆；0..N：零至多筆；0..1：零或一筆｜2026-11-23・V20 結構</text>
+</svg>
